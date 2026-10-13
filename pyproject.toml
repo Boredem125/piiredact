@@ -45,6 +45,11 @@ dev = [
     "pandas-stubs",
 ]
 
+[project.urls]
+Repository = "https://github.com/Boredem125/piiredact"
+Issues = "https://github.com/Boredem125/piiredact/issues"
+Changelog = "https://github.com/Boredem125/piiredact/blob/main/CHANGELOG.md"
+
 [project.scripts]
 piiredact = "piiredact.cli:main"
 
