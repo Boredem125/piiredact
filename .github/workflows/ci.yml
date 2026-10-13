@@ -33,6 +33,12 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        # macOS runners are scarce and jobs sometimes never get one. The
+        # library is pure Python, so the oldest and newest versions are enough.
+        exclude:
+          - { os: macos-latest, python-version: "3.11" }
+          - { os: macos-latest, python-version: "3.12" }
+          - { os: macos-latest, python-version: "3.13" }
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
