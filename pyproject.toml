@@ -1,0 +1,88 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "piiredact"
+dynamic = ["version"]
+description = "Detect and redact personally identifiable information (PII) in text, nested data, logs, files and DataFrames."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "piiredact contributors" }]
+keywords = ["pii", "privacy", "redaction", "anonymization", "data-protection", "gdpr", "dpdp", "logging"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: Filters",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+ner = ["spacy>=3.7"]
+pandas = ["pandas>=2.0"]
+phone = ["phonenumbers>=8.13"]
+all = ["piiredact[ner,pandas,phone]"]
+dev = [
+    "pytest>=8",
+    "hypothesis>=6.100",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "build>=1.2",
+    "pandas>=2.0",
+    "pandas-stubs",
+]
+
+[project.scripts]
+piiredact = "piiredact.cli:main"
+
+[tool.hatch.version]
+path = "src/piiredact/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/piiredact"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "benchmarks", "README.md", "CHANGELOG.md", "LICENSE", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "C4", "SIM", "RUF"]
+ignore = [
+    "S101",   # asserts are fine in tests
+    "RUF001", # ambiguous unicode is intentional in normalisation tables and tests
+    "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106", "S311"]
+"benchmarks/*" = ["S311"]
+
+[tool.mypy]
+strict = true
+python_version = "3.10"
+files = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["spacy", "spacy.*", "phonenumbers", "phonenumbers.*"]
+ignore_missing_imports = true
