@@ -1,6 +1,6 @@
 """Measure redaction throughput in MB/s on synthetic log-like text.
 
-    python benchmarks/throughput.py [--mb 5]
+python benchmarks/throughput.py [--mb 5]
 """
 
 from __future__ import annotations

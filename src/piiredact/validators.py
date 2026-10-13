@@ -78,7 +78,8 @@ def verhoeff(value: str) -> bool:
 # the prefix keeps other Luhn-valid numbers, such as IMEIs, from matching.
 _CARD_SCHEMES: tuple[tuple[tuple[str, ...], frozenset[int]], ...] = (
     (("4",), frozenset({13, 16, 19})),  # Visa
-    (("51", "52", "53", "54", "55", "22", "23", "24", "25", "26", "27"), frozenset({16})),  # Mastercard
+    (("51", "52", "53", "54", "55"), frozenset({16})),  # Mastercard
+    (("22", "23", "24", "25", "26", "27"), frozenset({16})),  # Mastercard 2-series
     (("34", "37"), frozenset({15})),  # American Express
     (("30", "36", "38", "39"), frozenset({14, 16, 19})),  # Diners Club
     (("35",), frozenset({16, 17, 18, 19})),  # JCB
@@ -123,7 +124,17 @@ def iban(value: str) -> bool:
 
 
 _ISO_COUNTRIES = frozenset(
-    ["AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AX", "AZ", "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BL", "BM", "BN", "BO", "BQ", "BR", "BS", "BT", "BV", "BW", "BY", "BZ", "CA", "CC", "CD", "CF", "CG", "CH", "CI", "CK", "CL", "CM", "CN", "CO", "CR", "CU", "CV", "CW", "CX", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "DZ", "EC", "EE", "EG", "EH", "ER", "ES", "ET", "FI", "FJ", "FK", "FM", "FO", "FR", "GA", "GB", "GD", "GE", "GF", "GG", "GH", "GI", "GL", "GM", "GN", "GP", "GQ", "GR", "GS", "GT", "GU", "GW", "GY", "HK", "HM", "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IM", "IN", "IO", "IQ", "IR", "IS", "IT", "JE", "JM", "JO", "JP", "KE", "KG", "KH", "KI", "KM", "KN", "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC", "LI", "LK", "LR", "LS", "LT", "LU", "LV", "LY", "MA", "MC", "MD", "ME", "MF", "MG", "MH", "MK", "ML", "MM", "MN", "MO", "MP", "MQ", "MR", "MS", "MT", "MU", "MV", "MW", "MX", "MY", "MZ", "NA", "NC", "NE", "NF", "NG", "NI", "NL", "NO", "NP", "NR", "NU", "NZ", "OM", "PA", "PE", "PF", "PG", "PH", "PK", "PL", "PM", "PN", "PR", "PS", "PT", "PW", "PY", "QA", "RE", "RO", "RS", "RU", "RW", "SA", "SB", "SC", "SD", "SE", "SG", "SH", "SI", "SJ", "SK", "SL", "SM", "SN", "SO", "SR", "SS", "ST", "SV", "SX", "SY", "SZ", "TC", "TD", "TF", "TG", "TH", "TJ", "TK", "TL", "TM", "TN", "TO", "TR", "TT", "TV", "TW", "TZ", "UA", "UG", "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI", "VN", "VU", "WF", "WS", "XK", "YE", "YT", "ZA", "ZM", "ZW"]
+    (
+        "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ "
+        "BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM "
+        "DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS "
+        "GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN "
+        "KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ "
+        "MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM "
+        "PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV "
+        "SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI "
+        "VN VU WF WS XK YE YT ZA ZM ZW"
+    ).split()
 )
 
 
@@ -212,8 +223,10 @@ def geo_coordinates(value: str) -> bool:
 
 # --------------------------------------------------------------------- devices
 
-_VIN_VALUES = dict(zip("ABCDEFGHJKLMNPRSTUVWXYZ", (1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 7, 9,
-                                                    2, 3, 4, 5, 6, 7, 8, 9), strict=True))  # fmt: skip
+_VIN_VALUES = {
+    letter: int(digit)
+    for letter, digit in zip("ABCDEFGHJKLMNPRSTUVWXYZ", "12345678123457923456789", strict=True)
+}
 _VIN_WEIGHTS = (8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2)
 
 
@@ -280,7 +293,9 @@ def gb_nhs(value: str) -> bool:
     digits = digits_of(value)
     if len(digits) != 10 or len(set(digits)) == 1:
         return False
-    total = sum((ord(ch) - 48) * weight for ch, weight in zip(digits[:9], range(10, 1, -1), strict=True))
+    total = sum(
+        (ord(ch) - 48) * weight for ch, weight in zip(digits[:9], range(10, 1, -1), strict=True)
+    )
     check = 11 - total % 11
     if check == 11:
         check = 0
@@ -335,14 +350,16 @@ def es_nie(value: str) -> bool:
     compact = alnum_of(value)
     if len(compact) != 9 or compact[0] not in "XYZ" or not compact[1:8].isdigit():
         return False
-    return _ES_LETTERS[int("XYZ".index(compact[0]) * 10_000_000 + int(compact[1:8])) % 23] == compact[8]
+    number = "XYZ".index(compact[0]) * 10_000_000 + int(compact[1:8])
+    return _ES_LETTERS[number % 23] == compact[8]
 
 
-_IT_ODD = {
-    **dict(zip("0123456789", (1, 0, 5, 7, 9, 13, 15, 17, 19, 21), strict=True)),
-    **dict(zip("ABCDEFGHIJKLMNOPQRSTUVWXYZ", (1, 0, 5, 7, 9, 13, 15, 17, 19, 21, 2, 4, 18, 20,
-                                             11, 3, 6, 8, 12, 14, 16, 10, 22, 25, 24, 23), strict=True)),
-}  # fmt: skip
+# Value of a character in an odd position, indexed by 0-9 for digits and
+# by 0-25 for letters. Even positions use the index itself.
+_IT_ODD = (
+    1, 0, 5, 7, 9, 13, 15, 17, 19, 21, 2, 4, 18,
+    20, 11, 3, 6, 8, 12, 14, 16, 10, 22, 25, 24, 23,
+)  # fmt: skip
 
 
 def it_fiscal_code(value: str) -> bool:
@@ -351,10 +368,9 @@ def it_fiscal_code(value: str) -> bool:
         return False
     total = 0
     for index, char in enumerate(code[:15]):
-        if index % 2 == 0:  # odd position, counting from 1
-            total += _IT_ODD[char]
-        else:
-            total += ord(char) - 48 if char.isdigit() else ord(char) - 65
+        number = ord(char) - 48 if char.isdigit() else ord(char) - 65
+        # index 0 is position 1, an odd position
+        total += _IT_ODD[number] if index % 2 == 0 else number
     return chr(65 + total % 26) == code[15]
 
 
@@ -362,5 +378,7 @@ def nl_bsn(value: str) -> bool:
     digits = digits_of(value)
     if len(digits) != 9 or digits == "000000000":
         return False
-    total = sum((ord(ch) - 48) * weight for ch, weight in zip(digits[:8], range(9, 1, -1), strict=True))
+    total = sum(
+        (ord(ch) - 48) * weight for ch, weight in zip(digits[:8], range(9, 1, -1), strict=True)
+    )
     return (total - (ord(digits[8]) - 48)) % 11 == 0

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Sequence
-from functools import cache, lru_cache
+from functools import cache
 from importlib.metadata import entry_points
 from typing import Any
 

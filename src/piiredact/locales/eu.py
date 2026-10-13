@@ -16,8 +16,20 @@ DETECTORS: tuple[Any, ...] = (
         r")(?![A-Za-z0-9])",
         score=0.6,
         context=(
-            "vat", "vat no", "vat number", "vat id", "ust-id", "ust-idnr", "ustid",
-            "umsatzsteuer", "tva", "iva", "btw", "partita iva", "nif",
-        ),  # fmt: skip
+            "vat",
+            "vat no",
+            "vat number",
+            "vat id",
+            "ust-id",
+            "ust-idnr",
+            "ustid",
+            "umsatzsteuer",
+            "tva",
+            "iva",
+            "btw",
+            "partita iva",
+            "nif",
+        ),
+        needs_digit=True,
     ),
 )

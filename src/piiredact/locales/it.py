@@ -14,5 +14,6 @@ DETECTORS: tuple[Any, ...] = (
         score=0.95,
         validator=v.it_fiscal_code,
         context=("codice fiscale", "cf", "c.f.", "fiscal code"),
+        needs_digit=True,
     ),
 )

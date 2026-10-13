@@ -27,38 +27,42 @@ DETECTORS: tuple[Any, ...] = (
         _B + r"(?:gh[pousr]_[A-Za-z0-9]{36,255}|github_pat_[A-Za-z0-9_]{22,255})" + _E,
         name="github_token",
         score=0.95,
+        needs=("_",),
     ),
     PatternDetector(
         SECRET,
         _B + r"xox[abeoprs]-[A-Za-z0-9-]{10,250}" + _E,
         name="slack_token",
         score=0.95,
+        needs=("xox",),
     ),
     PatternDetector(
         SECRET,
         _B + r"[rs]k_(?:live|test)_[A-Za-z0-9]{16,250}" + _E,
         name="stripe_key",
         score=0.95,
+        needs=("k_",),
     ),
     PatternDetector(
         SECRET,
         _B + r"AIza[0-9A-Za-z_-]{35}" + _E,
         name="google_api_key",
         score=0.95,
+        needs=("AIza",),
     ),
     PatternDetector(
         SECRET,
         _B + r"sk-(?:ant-|proj-)?[A-Za-z0-9_-]{32,250}" + _E,
         name="llm_api_key",
         score=0.9,
+        needs=("sk-",),
     ),
     PatternDetector(
         SECRET,
-        _B
-        + r"eyJ[A-Za-z0-9_-]{8,4096}\.eyJ[A-Za-z0-9_-]{8,8192}\.[A-Za-z0-9_-]{8,4096}"
-        + _E,
+        _B + r"eyJ[A-Za-z0-9_-]{8,4096}\.eyJ[A-Za-z0-9_-]{8,8192}\.[A-Za-z0-9_-]{8,4096}" + _E,
         name="jwt",
         score=0.95,
+        needs=("eyJ",),
     ),
     PatternDetector(
         SECRET,
@@ -67,6 +71,7 @@ DETECTORS: tuple[Any, ...] = (
         r"-----END (?:[A-Z0-9]{1,20} ){0,3}PRIVATE KEY-----",
         name="private_key_block",
         score=1.0,
+        needs=("-----BEGIN",),
     ),
     PatternDetector(
         SECRET,

@@ -36,6 +36,12 @@ class PatternDetector:
     ``trim``            returns the part of the match to keep, which must be a
                         prefix of it, or "" to discard the candidate. For
                         shapes whose end a regex cannot decide.
+    ``needs_digit``     every match contains a digit.
+    ``needs``           substrings every match contains.
+
+    The last two let the engine skip the detector for text that cannot
+    match, which is most of the cost on short strings. They must be true of
+    every possible match: a wrong hint silently disables the detector.
     """
 
     __slots__ = (
@@ -43,6 +49,8 @@ class PatternDetector:
         "entity",
         "group",
         "name",
+        "needs",
+        "needs_digit",
         "pattern",
         "require_context",
         "score",
@@ -65,6 +73,8 @@ class PatternDetector:
         group: int | str = 0,
         trim: Callable[[str], str] | None = None,
         flags: int = 0,
+        needs_digit: bool = False,
+        needs: Sequence[str] = (),
     ) -> None:
         if require_context and not context:
             raise ValueError("require_context needs at least one context word")
@@ -77,6 +87,8 @@ class PatternDetector:
         self.require_context = require_context
         self.group = group
         self.trim = trim
+        self.needs_digit = needs_digit
+        self.needs = tuple(needs)
         self._context = (
             re.compile(
                 r"(?<![^\W_])(?:" + "|".join(re.escape(word) for word in context) + r")(?![^\W_])",

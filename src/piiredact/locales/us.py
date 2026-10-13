@@ -19,6 +19,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.85,
         validator=v.us_ssn,
         context=_SSN_CONTEXT,
+        needs_digit=True,
     ),
     PatternDetector(
         "US_SSN",
@@ -28,12 +29,14 @@ DETECTORS: tuple[Any, ...] = (
         validator=v.us_ssn,
         context=_SSN_CONTEXT,
         require_context=True,
+        needs_digit=True,
     ),
     PatternDetector(
         "US_ITIN",
         _L + r"9\d{2}([- ])(?:5\d|6[0-5]|7\d|8[0-8]|9[0-24-9])\1\d{4}" + _R,
         score=0.85,
         context=("itin", "taxpayer identification", "tax id"),
+        needs_digit=True,
     ),
     PatternDetector(
         "US_EIN",
@@ -41,6 +44,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.5,
         context=("ein", "fein", "employer identification", "employer id", "tax id", "tin"),
         require_context=True,
+        needs_digit=True,
     ),
     PatternDetector(
         "US_PASSPORT",
@@ -48,6 +52,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.5,
         context=("passport", "passport no", "passport number", "passport#"),
         require_context=True,
+        needs_digit=True,
     ),
     PatternDetector(
         "US_ROUTING_NUMBER",
@@ -56,6 +61,7 @@ DETECTORS: tuple[Any, ...] = (
         validator=v.aba_routing,
         context=("routing", "routing number", "aba", "rtn", "ach"),
         require_context=True,
+        needs_digit=True,
     ),
     PatternDetector(
         "US_ZIP",
@@ -63,5 +69,6 @@ DETECTORS: tuple[Any, ...] = (
         score=0.4,
         context=("zip", "zipcode", "zip code", "postal code"),
         require_context=True,
+        needs_digit=True,
     ),
 )

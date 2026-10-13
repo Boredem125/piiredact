@@ -1,9 +1,9 @@
 """Command line interface.
 
-    piiredact redact notes.txt -o clean.txt
-    cat app.log | piiredact redact - > clean.log
-    piiredact scan notes.txt          # exit status 1 when PII is found
-    piiredact entities
+piiredact redact notes.txt -o clean.txt
+cat app.log | piiredact redact - > clean.log
+piiredact scan notes.txt          # exit status 1 when PII is found
+piiredact entities
 """
 
 from __future__ import annotations
@@ -141,9 +141,7 @@ def _redact_csv(
 
 def _cmd_redact(args: argparse.Namespace) -> int:
     redactor = _redactor(args)
-    with _reader(args.input, args.encoding) as source, _writer(
-        args.output, args.encoding
-    ) as sink:
+    with _reader(args.input, args.encoding) as source, _writer(args.output, args.encoding) as sink:
         if args.format == "jsonl":
             totals = _redact_jsonl(source, sink, redactor)
         elif args.format == "csv":

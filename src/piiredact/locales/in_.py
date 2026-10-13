@@ -30,12 +30,14 @@ DETECTORS: tuple[Any, ...] = (
         score=0.6,
         validator=v.in_aadhaar,
         context=("aadhaar", "aadhar", "adhaar", "adhar", "uid", "uidai", "आधार"),
+        needs_digit=True,
     ),
     PatternDetector(
         "IN_PAN",
         _L + r"[A-Z]{3}[ABCFGHJLPT][A-Z]\d{4}[A-Z]" + _R,
         score=0.85,
         context=("pan", "pan no", "pan number", "pan card", "permanent account number"),
+        needs_digit=True,
     ),
     PatternDetector(
         "IN_GSTIN",
@@ -43,6 +45,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.95,
         validator=v.in_gstin,
         context=("gstin", "gst", "gst no", "gst number"),
+        needs_digit=True,
     ),
     PatternDetector(
         "IN_VOTER_ID",
@@ -50,6 +53,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.5,
         context=("voter", "voter id", "epic", "epic no", "election card", "मतदाता"),
         require_context=True,
+        needs_digit=True,
     ),
     PatternDetector(
         "IN_PASSPORT",
@@ -57,12 +61,14 @@ DETECTORS: tuple[Any, ...] = (
         score=0.5,
         context=("passport", "passport no", "passport number", "पासपोर्ट"),
         require_context=True,
+        needs_digit=True,
     ),
     PatternDetector(
         "IN_IFSC",
         _L + r"[A-Z]{4}0[A-Z0-9]{6}" + _R,
         score=0.6,
         context=("ifsc", "ifsc code", "neft", "rtgs", "imps", "branch"),
+        needs_digit=True,
     ),
     PatternDetector(
         "IN_UPI_ID",
@@ -71,6 +77,7 @@ DETECTORS: tuple[Any, ...] = (
         + r")(?!\w)(?!-\w)(?!\.\w)",
         score=0.9,
         context=("upi", "vpa", "upi id", "gpay", "phonepe", "bhim"),
+        needs=("@",),
     ),
     PatternDetector(
         "IN_UPI_ID",
@@ -79,6 +86,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.5,
         context=("upi", "vpa", "upi id", "gpay", "phonepe", "bhim"),
         require_context=True,
+        needs=("@",),
     ),
     PatternDetector(
         "IN_PIN_CODE",
@@ -86,5 +94,6 @@ DETECTORS: tuple[Any, ...] = (
         score=0.4,
         context=("pin", "pincode", "pin code", "postal code", "पिन"),
         require_context=True,
+        needs_digit=True,
     ),
 )

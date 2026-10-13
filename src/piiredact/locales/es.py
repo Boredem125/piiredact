@@ -17,6 +17,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.85,
         validator=v.es_dni,
         context=("dni", "nif", "documento nacional de identidad"),
+        needs_digit=True,
     ),
     PatternDetector(
         "ES_NIE",
@@ -24,5 +25,6 @@ DETECTORS: tuple[Any, ...] = (
         score=0.9,
         validator=v.es_nie,
         context=("nie", "número de identidad de extranjero", "extranjero"),
+        needs_digit=True,
     ),
 )

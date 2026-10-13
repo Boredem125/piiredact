@@ -128,7 +128,10 @@ class TestSecrets:
 
 class TestUnicode:
     def test_fullwidth_digits(self):
-        assert piiredact.redact("card ４１１１ １１１１ １１１１ １１１１ ok") == "card [CREDIT_CARD] ok"
+        assert (
+            piiredact.redact("card ４１１１ １１１１ １１１１ １１１１ ok")
+            == "card [CREDIT_CARD] ok"
+        )
 
     def test_zero_width_characters_inside_a_value(self):
         text = "mail ja​ne@exam‍ple.com now"

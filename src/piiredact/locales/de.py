@@ -14,9 +14,18 @@ DETECTORS: tuple[Any, ...] = (
         score=0.55,
         validator=v.de_tax_id,
         context=(
-            "steuer", "steuer-id", "steuerid", "steuer-idnr", "idnr", "steuernummer",
-            "identifikationsnummer", "steueridentifikationsnummer", "tin", "tax id",
-        ),  # fmt: skip
+            "steuer",
+            "steuer-id",
+            "steuerid",
+            "steuer-idnr",
+            "idnr",
+            "steuernummer",
+            "identifikationsnummer",
+            "steueridentifikationsnummer",
+            "tin",
+            "tax id",
+        ),
+        needs_digit=True,
     ),
     PatternDetector(
         "DE_ID_CARD",

@@ -82,9 +82,7 @@ def test_hint_leaves_empty_none_and_bool():
 
 
 def test_key_hints_can_be_disabled():
-    assert piiredact.redact_obj({"password": "hunter2"}, key_hints=False) == {
-        "password": "hunter2"
-    }
+    assert piiredact.redact_obj({"password": "hunter2"}, key_hints=False) == {"password": "hunter2"}
 
 
 def test_hints_use_the_policy():

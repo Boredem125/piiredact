@@ -57,14 +57,15 @@ class TestDataFrame:
         assert out["card"][0] == "**** **** **** 1111"
 
 
+KNOWN_ENTITIES = {"Jane Smith": "PERSON", "Leeds": "GPE", "Acme Ltd": "ORG", "Tuesday": "DATE"}
+
+
 class FakeNlp:
     """Stands in for a spaCy pipeline: tags fixed strings."""
 
-    known = {"Jane Smith": "PERSON", "Leeds": "GPE", "Acme Ltd": "ORG", "Tuesday": "DATE"}
-
     def __call__(self, text):
         ents = []
-        for value, label in self.known.items():
+        for value, label in KNOWN_ENTITIES.items():
             start = text.find(value)
             if start >= 0:
                 ents.append(

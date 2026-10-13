@@ -18,6 +18,10 @@ class Detector(Protocol):
 
     ``strict`` asks the detector to prefer recall: emit candidates it would
     normally hold back for lack of supporting context.
+
+    A detector may also define ``needs_digit`` (bool) and ``needs`` (a tuple
+    of substrings). The engine then skips it for text with no digit, or
+    without all of those substrings. Both must hold for every possible match.
     """
 
     name: str

@@ -59,9 +59,7 @@ _HINTS: dict[str, tuple[str, ...]] = {
     ),
 }  # fmt: skip
 
-_KEY_TO_ENTITY: dict[str, str] = {
-    key: entity for entity, keys in _HINTS.items() for key in keys
-}
+_KEY_TO_ENTITY: dict[str, str] = {key: entity for entity, keys in _HINTS.items() for key in keys}
 HINT_ENTITIES: frozenset[str] = frozenset(_HINTS)
 
 _CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")

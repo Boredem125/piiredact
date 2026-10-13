@@ -50,7 +50,9 @@ def _group(value: str, size: int, sep: str) -> str:
 
 
 def email(rng: random.Random) -> str:
-    user = rng.choice(["jane", "raj.kumar", "a_b", "info", "maria-g", "x1"]) + str(rng.randint(1, 999))
+    user = rng.choice(["jane", "raj.kumar", "a_b", "info", "maria-g", "x1"]) + str(
+        rng.randint(1, 999)
+    )
     return f"{user}@{rng.choice(['example.com', 'example.org', 'mail.example.net'])}"
 
 
@@ -120,7 +122,13 @@ def in_aadhaar(rng: random.Random) -> str:
 
 
 def in_pan(rng: random.Random) -> str:
-    return _letters(rng, 3) + rng.choice("PCHFAT") + _letters(rng, 1) + _digits(rng, 4) + _letters(rng, 1)
+    return (
+        _letters(rng, 3)
+        + rng.choice("PCHFAT")
+        + _letters(rng, 1)
+        + _digits(rng, 4)
+        + _letters(rng, 1)
+    )
 
 
 def in_gstin(rng: random.Random) -> str:
@@ -134,7 +142,9 @@ def gb_nino(rng: random.Random) -> str:
         if v.gb_nino(prefix):
             break
     number = prefix + _digits(rng, 6) + rng.choice("ABCD")
-    return rng.choice([number, f"{number[:2]} {number[2:4]} {number[4:6]} {number[6:8]} {number[8]}"])
+    return rng.choice(
+        [number, f"{number[:2]} {number[2:4]} {number[4:6]} {number[6:8]} {number[8]}"]
+    )
 
 
 def gb_nhs(rng: random.Random) -> str:

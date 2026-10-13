@@ -1,3 +1,4 @@
+import itertools
 import threading
 
 import pytest
@@ -37,7 +38,7 @@ def test_empty_and_non_string_input():
 def test_spans_never_overlap():
     text = "https://u:p@example.com/x?mail=jane@example.com 27AAPFU0939F1ZV 415-555-0132"
     spans = piiredact.scan(text, strict=True)
-    for left, right in zip(spans, spans[1:], strict=False):
+    for left, right in itertools.pairwise(spans):
         assert left.end <= right.start
 
 

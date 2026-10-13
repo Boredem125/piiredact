@@ -14,7 +14,11 @@ from piiredact import validators as v
         (v.bic, "DEUTDEFF", "DEUTXXFF"),
         (v.aba_routing, "021000021", "021000022"),
         (v.base58check, "1BoatSLRHtKNngkdXEeobR76b53LETtpyT", "1BoatSLRHtKNngkdXEeobR76b53LETtpyU"),
-        (v.bech32, "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4", "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5"),
+        (
+            v.bech32,
+            "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+            "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t5",
+        ),
         (v.ipv6, "2001:db8::8a2e:370:7334", "12:30:45"),
         (v.geo_coordinates, "48.8584,2.2945", "98.8584,2.2945"),
         (v.vin_check_digit, "1HGCM82633A004352", "1HGCM82643A004352"),

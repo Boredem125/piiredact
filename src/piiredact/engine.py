@@ -16,6 +16,14 @@ from .types import Result, Span
 DEFAULT_MIN_SCORE = 0.5
 STRICT_MIN_SCORE = 0.3
 
+_DIGITS = "0123456789"
+
+
+def _has_digit(text: str) -> bool:
+    # Ten substring searches beat one regex scan: each runs at memchr speed.
+    # Non-ASCII digits were folded to ASCII by normalize().
+    return any(digit in text for digit in _DIGITS)
+
 
 class Redactor:
     """Find and redact PII.
@@ -56,6 +64,16 @@ class Redactor:
         self._entities = None if entities is None else frozenset(entities)
         self._excluded = frozenset(exclude_entities or ())
         self._detectors = registry.build(locales, self._entities, self._excluded, detectors)
+        # (order, detector, needs a digit, substrings it needs)
+        self._plan = tuple(
+            (
+                order,
+                detector,
+                bool(getattr(detector, "needs_digit", False)),
+                tuple(getattr(detector, "needs", ())),
+            )
+            for order, detector in enumerate(self._detectors)
+        )
         self._policy: dict[str, Operator] = dict(policy or {})
         self._default: Operator = default_operator if default_operator is not None else Replace()
         self.strict = strict
@@ -104,8 +122,13 @@ class Redactor:
             return []
         normalised, offsets = normalize(text)
 
+        has_digit = _has_digit(normalised)
         candidates: list[tuple[float, int, int, int, Span]] = []
-        for order, detector in enumerate(self._detectors):
+        for order, detector, needs_digit, needs in self._plan:
+            if needs_digit and not has_digit:
+                continue
+            if needs and not all(part in normalised for part in needs):
+                continue
             open_ended = detector.entity == "*"
             for found in detector.detect(normalised, strict=self.strict):
                 if found.score < self.min_score or found.end <= found.start:

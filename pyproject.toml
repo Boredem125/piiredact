@@ -72,10 +72,11 @@ ignore = [
     "S101",   # asserts are fine in tests
     "RUF001", # ambiguous unicode is intentional in normalisation tables and tests
     "RUF003",
+    "SIM905", # str.split() keeps long word lists readable
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S105", "S106", "S311"]
+"tests/*" = ["S105", "S106", "S311", "E501"]
 "benchmarks/*" = ["S311"]
 
 [tool.mypy]

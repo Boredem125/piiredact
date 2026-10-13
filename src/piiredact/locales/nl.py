@@ -15,5 +15,6 @@ DETECTORS: tuple[Any, ...] = (
         validator=v.nl_bsn,
         context=("bsn", "burgerservicenummer", "sofinummer", "sofi", "sofi-nummer"),
         require_context=True,
+        needs_digit=True,
     ),
 )

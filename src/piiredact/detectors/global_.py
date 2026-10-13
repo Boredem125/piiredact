@@ -118,6 +118,7 @@ class IbanDetector:
 
     name = "iban"
     entity = t.IBAN
+    needs_digit = True
     _start = re.compile(r"(?<![A-Za-z0-9])[A-Z]{2}\d{2}(?=[ ]?[A-Z0-9])")
 
     def detect(self, text: str, *, strict: bool = False) -> Iterator[Span]:
@@ -165,16 +166,19 @@ DETECTORS: tuple[Any, ...] = (
         r"(?<!\w)(?<!\w[.+%-])[A-Za-z0-9][A-Za-z0-9._%+-]{0,63}@"
         r"(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.){1,8}[A-Za-z]{2,24}(?!\w)(?!-\w)",
         score=0.95,
+        needs=("@",),
     ),
     # ---------------------------------------------------------------- phone
     PatternDetector(
         t.PHONE,
-        r"(?<![\w+])(?<!\w[.-])\+\d{1,3}[ .-]?(?:\(\d{1,5}\)[ .-]?)?\d{1,14}(?:[ .-]\d{1,12}){0,5}" + _R,
+        r"(?<![\w+])(?<!\w[.-])\+\d{1,3}[ .-]?(?:\(\d{1,5}\)[ .-]?)?\d{1,14}(?:[ .-]\d{1,12}){0,5}"
+        + _R,
         name="phone_international",
         score=0.85,
         trim=_trim_international,
         validator=_phone_international,
         context=_PHONE_CONTEXT,
+        needs_digit=True,
     ),
     PatternDetector(
         t.PHONE,
@@ -183,6 +187,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.75,
         validator=_phone_nanp,
         context=_PHONE_CONTEXT,
+        needs_digit=True,
     ),
     PatternDetector(
         t.PHONE,
@@ -190,6 +195,7 @@ DETECTORS: tuple[Any, ...] = (
         name="phone_in_mobile",
         score=0.7,
         context=_PHONE_CONTEXT,
+        needs_digit=True,
     ),
     PatternDetector(
         t.PHONE,
@@ -198,6 +204,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.65,
         validator=_digit_count(9, 11),
         context=_PHONE_CONTEXT,
+        needs_digit=True,
     ),
     PatternDetector(
         t.PHONE,
@@ -206,6 +213,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.7,
         validator=_digit_count(7, 13),
         context=_PHONE_CONTEXT,
+        needs_digit=True,
     ),
     PatternDetector(
         t.PHONE,
@@ -215,6 +223,7 @@ DETECTORS: tuple[Any, ...] = (
         validator=_phone_generic,
         context=_PHONE_CONTEXT,
         require_context=True,
+        needs_digit=True,
     ),
     # -------------------------------------------------------------- finance
     PatternDetector(
@@ -222,6 +231,7 @@ DETECTORS: tuple[Any, ...] = (
         _L + r"\d{4}([ -]?)\d{4}\1\d{4}\1\d{1,7}" + _R,
         score=0.95,
         validator=v.credit_card,
+        needs_digit=True,
     ),
     PatternDetector(
         t.CREDIT_CARD,
@@ -229,6 +239,7 @@ DETECTORS: tuple[Any, ...] = (
         name="credit_card_4_6_5",
         score=0.95,
         validator=v.credit_card,
+        needs_digit=True,
     ),
     PatternDetector(
         t.CREDIT_CARD,
@@ -236,6 +247,7 @@ DETECTORS: tuple[Any, ...] = (
         name="credit_card_19",
         score=0.95,
         validator=v.credit_card,
+        needs_digit=True,
     ),
     IbanDetector(),
     PatternDetector(
@@ -259,12 +271,14 @@ DETECTORS: tuple[Any, ...] = (
         name="bitcoin_bech32",
         score=0.9,
         validator=v.bech32,
+        needs=("bc1",),
     ),
     PatternDetector(
         t.CRYPTO_WALLET,
         r"(?<![A-Za-z0-9])0x[0-9A-Fa-f]{40}(?![A-Za-z0-9])",
         name="ethereum",
         score=0.8,
+        needs=("0x",),
     ),
     # -------------------------------------------------------------- network
     PatternDetector(
@@ -272,6 +286,7 @@ DETECTORS: tuple[Any, ...] = (
         rf"(?<![\w.]){_OCTET}(?:\.{_OCTET}){{3}}(?!\w|\.\d)",
         name="ipv4",
         score=0.8,
+        needs_digit=True,
     ),
     PatternDetector(
         t.IP_ADDRESS,
@@ -280,6 +295,7 @@ DETECTORS: tuple[Any, ...] = (
         name="ipv6",
         score=0.8,
         validator=v.ipv6,
+        needs=(":",),
     ),
     PatternDetector(
         t.MAC_ADDRESS,
@@ -292,6 +308,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.6,
         scorer=_url_score,
         trim=_trim_url,
+        needs=("://",),
     ),
     # -------------------------------------------------------------- devices
     PatternDetector(
@@ -301,12 +318,14 @@ DETECTORS: tuple[Any, ...] = (
         validator=v.luhn,
         context=("imei", "imei1", "imei2", "handset", "device id"),
         require_context=True,
+        needs_digit=True,
     ),
     PatternDetector(
         t.VIN,
         r"(?<![A-Za-z0-9])[A-HJ-NPR-Z0-9]{17}(?![A-Za-z0-9])",
         scorer=_vin_score,
         context=("vin", "vehicle identification", "chassis", "chassis no", "vehicle"),
+        needs_digit=True,
     ),
     # ------------------------------------------------------------- location
     PatternDetector(
@@ -315,6 +334,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.7,
         validator=v.geo_coordinates,
         context=("lat", "latitude", "lon", "lng", "longitude", "gps", "coordinates", "location"),
+        needs_digit=True,
     ),
     # ----------------------------------------------------------------- date
     PatternDetector(
@@ -323,11 +343,27 @@ DETECTORS: tuple[Any, ...] = (
         score=0.5,
         flags=re.IGNORECASE,
         context=(
-            "born", "dob", "d.o.b", "d.o.b.", "date of birth", "birth date", "birthdate",
-            "birthday", "birth", "geboren", "geburtsdatum", "né le", "née le",
-            "date de naissance", "fecha de nacimiento", "data di nascita", "geboortedatum",
-            "जन्म तिथि", "जन्मतिथि",
-        ),  # fmt: skip
+            "born",
+            "dob",
+            "d.o.b",
+            "d.o.b.",
+            "date of birth",
+            "birth date",
+            "birthdate",
+            "birthday",
+            "birth",
+            "geboren",
+            "geburtsdatum",
+            "né le",
+            "née le",
+            "date de naissance",
+            "fecha de nacimiento",
+            "data di nascita",
+            "geboortedatum",
+            "जन्म तिथि",
+            "जन्मतिथि",
+        ),
         require_context=True,
+        needs_digit=True,
     ),
 )

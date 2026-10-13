@@ -89,9 +89,15 @@ def test_text_outside_spans_is_preserved(text):
 
 @given(
     st.recursive(
-        st.none() | st.booleans() | st.integers() | st.floats(allow_nan=False) | st.text(max_size=40),
-        lambda children: st.lists(children, max_size=4)
-        | st.dictionaries(st.text(max_size=12), children, max_size=4),
+        st.none()
+        | st.booleans()
+        | st.integers()
+        | st.floats(allow_nan=False)
+        | st.text(max_size=40),
+        lambda children: (
+            st.lists(children, max_size=4)
+            | st.dictionaries(st.text(max_size=12), children, max_size=4)
+        ),
         max_leaves=20,
     )
 )
@@ -101,8 +107,10 @@ def test_redact_obj_keeps_the_shape(data):
 
     def same_shape(a, b):
         if isinstance(a, dict):
-            return isinstance(b, dict) and a.keys() == b.keys() and all(
-                same_shape(a[k], b[k]) for k in a
+            return (
+                isinstance(b, dict)
+                and a.keys() == b.keys()
+                and all(same_shape(a[k], b[k]) for k in a)
             )
         if isinstance(a, list):
             return isinstance(b, list) and len(a) == len(b) and all(map(same_shape, a, b))

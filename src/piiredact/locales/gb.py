@@ -19,6 +19,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.85,
         validator=v.gb_nino,
         context=("nino", "national insurance", "ni number", "ni no", "insurance number"),
+        needs_digit=True,
     ),
     PatternDetector(
         "GB_NHS_NUMBER",
@@ -26,6 +27,7 @@ DETECTORS: tuple[Any, ...] = (
         score=0.55,
         validator=v.gb_nhs,
         context=_NHS_CONTEXT,
+        needs_digit=True,
     ),
     # One bare ten-digit number in eleven passes the check digit by chance.
     PatternDetector(
@@ -36,19 +38,20 @@ DETECTORS: tuple[Any, ...] = (
         validator=v.gb_nhs,
         context=_NHS_CONTEXT,
         require_context=True,
+        needs_digit=True,
     ),
     PatternDetector(
         "GB_POSTCODE",
-        _L
-        + r"(?:GIR ?0AA|[A-PR-UWYZ][A-HK-Y]?\d[A-HJKPS-UW\d]? ?\d[ABD-HJLNP-UW-Z]{2})"
-        + _R,
+        _L + r"(?:GIR ?0AA|[A-PR-UWYZ][A-HK-Y]?\d[A-HJKPS-UW\d]? ?\d[ABD-HJLNP-UW-Z]{2})" + _R,
         score=0.6,
         context=("postcode", "post code", "address"),
+        needs_digit=True,
     ),
     PatternDetector(
         "GB_DRIVING_LICENCE",
         _L + r"[A-Z9]{5}\d[0156]\d[0-3]\d{2}[A-Z9]{2}\d[A-Z]{2}" + _R,
         score=0.8,
         context=("driving licence", "driver licence", "licence number", "dvla"),
+        needs_digit=True,
     ),
 )
