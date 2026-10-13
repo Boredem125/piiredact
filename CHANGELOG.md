@@ -2,7 +2,7 @@
 
 This project follows [Semantic Versioning](https://semver.org/). Entity names and the fields of `Span` and `Result` are part of the public interface.
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-10-13)
 
 First version.
 

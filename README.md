@@ -25,13 +25,11 @@ Using this library does not by itself make a system compliant with GDPR, HIPAA, 
 
 ## Install
 
-The package is not on PyPI yet. Until it is, install from the repository:
-
 ```bash
-pip install git+https://github.com/Boredem125/piiredact
+pip install piiredact
 ```
 
-Optional extras, once published: `piiredact[pandas]` for DataFrames, `piiredact[ner]` for names and places through spaCy, `piiredact[phone]` for stricter validation of international phone numbers.
+Optional extras: `piiredact[pandas]` for DataFrames, `piiredact[ner]` for names and places through spaCy, `piiredact[phone]` for stricter validation of international phone numbers, `piiredact[all]` for all three.
 
 ## Usage
 
