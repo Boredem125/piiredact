@@ -3,14 +3,14 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "piiredact"
+name = "depii"
 dynamic = ["version"]
 description = "Detect and redact personally identifiable information (PII) in text, nested data, logs, files and DataFrames."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-authors = [{ name = "piiredact contributors" }]
+authors = [{ name = "depii contributors" }]
 keywords = ["pii", "privacy", "redaction", "anonymization", "data-protection", "gdpr", "dpdp", "logging"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -34,7 +34,7 @@ dependencies = []
 ner = ["spacy>=3.7"]
 pandas = ["pandas>=2.0"]
 phone = ["phonenumbers>=8.13"]
-all = ["piiredact[ner,pandas,phone]"]
+all = ["depii[ner,pandas,phone]"]
 dev = [
     "pytest>=8",
     "hypothesis>=6.100",
@@ -51,13 +51,13 @@ Issues = "https://github.com/Boredem125/piiredact/issues"
 Changelog = "https://github.com/Boredem125/piiredact/blob/main/CHANGELOG.md"
 
 [project.scripts]
-piiredact = "piiredact.cli:main"
+depii = "depii.cli:main"
 
 [tool.hatch.version]
-path = "src/piiredact/__init__.py"
+path = "src/depii/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/piiredact"]
+packages = ["src/depii"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src", "tests", "benchmarks", "README.md", "CHANGELOG.md", "LICENSE", "pyproject.toml"]

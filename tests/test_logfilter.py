@@ -3,8 +3,8 @@ import logging
 
 import pytest
 
-from piiredact import Mask, PIIFilter, Redactor
-from piiredact.logfilter import FAILED
+from depii import Mask, PIIFilter, Redactor
+from depii.logfilter import FAILED
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def log():
     handler = logging.StreamHandler(stream)
     handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
     handler.addFilter(PIIFilter())
-    logger = logging.getLogger("piiredact-test")
+    logger = logging.getLogger("depii-test")
     logger.handlers[:] = [handler]
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
@@ -60,7 +60,7 @@ def test_extra_fields():
 
     handler = Capture()
     handler.addFilter(PIIFilter())
-    logger = logging.getLogger("piiredact-test-extra")
+    logger = logging.getLogger("depii-test-extra")
     logger.handlers[:] = [handler]
     logger.propagate = False
     logger.warning("x", extra={"contact": "jane@example.com", "password": "hunter2", "n": 3})

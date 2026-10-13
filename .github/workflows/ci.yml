@@ -64,5 +64,5 @@ jobs:
       - run: |
           python -m venv /tmp/clean
           /tmp/clean/bin/pip install dist/*.whl
-          /tmp/clean/bin/python -c "import piiredact; assert piiredact.redact('jane@example.com') == '[EMAIL]'"
-          echo "ssn 078-05-1120" | /tmp/clean/bin/piiredact redact -
+          /tmp/clean/bin/python -c "import depii; assert depii.redact('jane@example.com') == '[EMAIL]'"
+          echo "ssn 078-05-1120" | /tmp/clean/bin/depii redact -

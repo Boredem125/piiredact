@@ -2,7 +2,7 @@ import threading
 
 import pytest
 
-from piiredact import Drop, Hash, Keep, Mask, Replace, Tokenize, Vault
+from depii import Drop, Hash, Keep, Mask, Replace, Tokenize, Vault
 
 
 def test_replace():

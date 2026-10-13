@@ -1,4 +1,4 @@
-"""pandas support. Needs the ``pandas`` extra: ``pip install "piiredact[pandas]"``."""
+"""pandas support. Needs the ``pandas`` extra: ``pip install "depii[pandas]"``."""
 
 from __future__ import annotations
 
@@ -32,9 +32,7 @@ def redact_dataframe(
     try:
         import pandas as pd
     except ImportError as error:
-        raise ImportError(
-            'redact_dataframe needs pandas: pip install "piiredact[pandas]"'
-        ) from error
+        raise ImportError('redact_dataframe needs pandas: pip install "depii[pandas]"') from error
 
     if redactor is None:
         from .engine import Redactor

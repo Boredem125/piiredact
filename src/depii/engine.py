@@ -98,7 +98,7 @@ class Redactor:
         if unknown:
             warnings.warn(
                 f"unknown entity type(s): {', '.join(unknown)}. "
-                "Check spelling; see piiredact.supported_entities().",
+                "Check spelling; see depii.supported_entities().",
                 stacklevel=3,
             )
 
@@ -177,7 +177,7 @@ class Redactor:
     def redact_obj(self, obj: Any, **options: Any) -> Any:
         """Redact every string inside nested dicts, lists, tuples and sets.
 
-        See :func:`piiredact.structured.redact_obj` for the options.
+        See :func:`depii.structured.redact_obj` for the options.
         """
         from .structured import redact_obj
 

@@ -9,7 +9,7 @@ import time
 
 import pytest
 
-from piiredact import Redactor, registry
+from depii import Redactor, registry
 
 SIZE = 20_000
 

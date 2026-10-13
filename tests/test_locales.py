@@ -1,7 +1,7 @@
 import pytest
 
-import piiredact
-from piiredact import Redactor, locales, supported_entities
+import depii
+from depii import Redactor, locales, supported_entities
 
 
 @pytest.mark.parametrize(
@@ -44,7 +44,7 @@ from piiredact import Redactor, locales, supported_entities
     ],
 )
 def test_detects(text, entity, value):
-    found = {(span.entity, span.text) for span in piiredact.scan(text)}
+    found = {(span.entity, span.text) for span in depii.scan(text)}
     assert (entity, value) in found
 
 
@@ -65,19 +65,19 @@ def test_detects(text, entity, value):
 )
 def test_rejects_as_locale_identifier(text):
     locale_entities = {
-        span.entity for span in piiredact.scan(text) if span.entity[:3] in {
+        span.entity for span in depii.scan(text) if span.entity[:3] in {
             "US_", "IN_", "GB_", "DE_", "FR_", "ES_", "IT_", "NL_", "EU_"}
     }  # fmt: skip
     assert locale_entities == set()
 
 
 def test_strict_mode_drops_the_context_requirement():
-    assert piiredact.scan("invoice 078051120") == []
-    assert piiredact.scan("invoice 078051120", strict=True) != []
+    assert depii.scan("invoice 078051120") == []
+    assert depii.scan("invoice 078051120", strict=True) != []
 
 
 def test_gstin_is_not_reported_as_the_pan_inside_it():
-    assert [s.entity for s in piiredact.scan("27AAPFU0939F1ZV")] == ["IN_GSTIN"]
+    assert [s.entity for s in depii.scan("27AAPFU0939F1ZV")] == ["IN_GSTIN"]
 
 
 def test_locale_selection():

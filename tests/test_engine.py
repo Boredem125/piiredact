@@ -3,12 +3,12 @@ import threading
 
 import pytest
 
-import piiredact
-from piiredact import Drop, Hash, Keep, Mask, PatternDetector, Redactor, Replace, Tokenize, Vault
+import depii
+from depii import Drop, Hash, Keep, Mask, PatternDetector, Redactor, Replace, Tokenize, Vault
 
 
 def test_readme_example():
-    assert piiredact.redact("Mail jane@example.com") == "Mail [EMAIL]"
+    assert depii.redact("Mail jane@example.com") == "Mail [EMAIL]"
 
 
 def test_result_fields():
@@ -21,23 +21,23 @@ def test_result_fields():
 
 
 def test_span_repr_does_not_leak_the_value():
-    (span,) = piiredact.scan("jane@example.com")
+    (span,) = depii.scan("jane@example.com")
     assert "jane" not in repr(span)
     assert span.text == "jane@example.com"
 
 
 def test_empty_and_non_string_input():
-    assert piiredact.redact("") == ""
-    assert piiredact.scan("") == []
+    assert depii.redact("") == ""
+    assert depii.scan("") == []
     with pytest.raises(TypeError):
-        piiredact.redact(None)  # type: ignore[arg-type]
+        depii.redact(None)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        piiredact.redact(b"jane@example.com")  # type: ignore[arg-type]
+        depii.redact(b"jane@example.com")  # type: ignore[arg-type]
 
 
 def test_spans_never_overlap():
     text = "https://u:p@example.com/x?mail=jane@example.com 27AAPFU0939F1ZV 415-555-0132"
-    spans = piiredact.scan(text, strict=True)
+    spans = depii.scan(text, strict=True)
     for left, right in itertools.pairwise(spans):
         assert left.end <= right.start
 
@@ -107,9 +107,9 @@ class TestIdempotence:
         # "[PHONE]" contains the word "phone"; it must not make the bare
         # number next to it look like a phone number on a second pass.
         text = "+1 415 555 0132 or 4155550199"
-        once = piiredact.redact(text)
+        once = depii.redact(text)
         assert once == "[PHONE] or 4155550199"
-        assert piiredact.redact(once) == once
+        assert depii.redact(once) == once
 
     @pytest.mark.parametrize(
         "text",
@@ -121,8 +121,8 @@ class TestIdempotence:
         ],
     )
     def test_second_pass_changes_nothing(self, text):
-        once = piiredact.redact(text)
-        assert piiredact.redact(once) == once
+        once = depii.redact(text)
+        assert depii.redact(once) == once
 
     def test_tokens_are_not_context_either(self):
         redactor = Redactor(default_operator=Tokenize(Vault()))

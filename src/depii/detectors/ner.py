@@ -3,11 +3,11 @@
 Regexes cannot find names, street addresses or organisations in free text.
 This detector covers them, at the cost of a model download and slower runs::
 
-    pip install "piiredact[ner]"
+    pip install "depii[ner]"
     python -m spacy download en_core_web_sm
 
-    from piiredact import Redactor
-    from piiredact.detectors.ner import SpacyDetector
+    from depii import Redactor
+    from depii.detectors.ner import SpacyDetector
 
     redactor = Redactor(detectors=[SpacyDetector()])
 """
@@ -54,9 +54,7 @@ class SpacyDetector:
             try:
                 import spacy
             except ImportError as error:
-                raise ImportError(
-                    'SpacyDetector needs spaCy: pip install "piiredact[ner]"'
-                ) from error
+                raise ImportError('SpacyDetector needs spaCy: pip install "depii[ner]"') from error
             try:
                 nlp = spacy.load(model)
             except OSError as error:

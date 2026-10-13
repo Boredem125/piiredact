@@ -8,7 +8,7 @@ real-world text.
 import pytest
 
 import synth
-from piiredact import Redactor
+from depii import Redactor
 
 SAMPLES = synth.corpus(seed=7, per_kind=60)
 SCORES = synth.evaluate(Redactor().scan, SAMPLES)

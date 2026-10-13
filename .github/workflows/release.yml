@@ -34,8 +34,8 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           ls dist
-          test -f "dist/piiredact-${version}-py3-none-any.whl"
-          test -f "dist/piiredact-${version}.tar.gz"
+          test -f "dist/depii-${version}-py3-none-any.whl"
+          test -f "dist/depii-${version}.tar.gz"
       - uses: actions/upload-artifact@v4
         with:
           name: dist

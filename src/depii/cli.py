@@ -1,9 +1,9 @@
 """Command line interface.
 
-piiredact redact notes.txt -o clean.txt
-cat app.log | piiredact redact - > clean.log
-piiredact scan notes.txt          # exit status 1 when PII is found
-piiredact entities
+depii redact notes.txt -o clean.txt
+cat app.log | depii redact - > clean.log
+depii scan notes.txt          # exit status 1 when PII is found
+depii entities
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ def _operator(args: argparse.Namespace) -> Operator:
         # be visible in the process list and the shell history.
         key = os.environ.get(args.hash_key_env)
         if not key:
-            raise SystemExit(f"piiredact: --operator hash needs a key in ${args.hash_key_env}")
+            raise SystemExit(f"depii: --operator hash needs a key in ${args.hash_key_env}")
         return Hash(key)
     return Replace()
 
@@ -195,9 +195,9 @@ def _cmd_entities(args: argparse.Namespace) -> int:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="piiredact", description="Detect and redact PII in text, JSON Lines and CSV."
+        prog="depii", description="Detect and redact PII in text, JSON Lines and CSV."
     )
-    parser.add_argument("--version", action="version", version=f"piiredact {__version__}")
+    parser.add_argument("--version", action="version", version=f"depii {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
 
     def common(sub: argparse.ArgumentParser) -> None:
@@ -223,8 +223,8 @@ def _parser() -> argparse.ArgumentParser:
     redact.add_argument("--keep-last", type=int, default=0, help="mask: characters left visible")
     redact.add_argument(
         "--hash-key-env",
-        default="PIIREDACT_HASH_KEY",
-        help="hash: environment variable holding the key (default: PIIREDACT_HASH_KEY)",
+        default="DEPII_HASH_KEY",
+        help="hash: environment variable holding the key (default: DEPII_HASH_KEY)",
     )
     redact.add_argument("--report", action="store_true", help="print counts to stderr as JSON")
     redact.set_defaults(run=_cmd_redact)
@@ -248,7 +248,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         return int(args.run(args))
     except (OSError, ValueError, UnicodeError) as error:
-        print(f"piiredact: {error}", file=sys.stderr)
+        print(f"depii: {error}", file=sys.stderr)
         return EXIT_ERROR
 
 

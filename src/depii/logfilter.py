@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .engine import Redactor
 
-FAILED = "[piiredact: redaction failed, message withheld]"
+FAILED = "[depii: redaction failed, message withheld]"
 
 _STANDARD_ATTRS = frozenset(vars(logging.LogRecord("", 0, "", 0, "", (), None))) | {
     "message",

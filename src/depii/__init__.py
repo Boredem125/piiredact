@@ -1,7 +1,7 @@
-"""piiredact: detect and redact personally identifiable information.
+"""depii: detect and redact personally identifiable information.
 
-    >>> import piiredact
-    >>> piiredact.redact("Mail jane@example.com")
+    >>> import depii
+    >>> depii.redact("Mail jane@example.com")
     'Mail [EMAIL]'
 
 No detector finds every piece of PII. Treat the output as reduced-risk data,
@@ -71,6 +71,6 @@ def scan(text: str, **options: Any) -> list[Span]:
 def redact_obj(obj: Any, **options: Any) -> Any:
     """Return a redacted copy of nested data, using the default ``Redactor``.
 
-    ``options`` are those of :func:`piiredact.structured.redact_obj`.
+    ``options`` are those of :func:`depii.structured.redact_obj`.
     """
     return _redact_obj(obj, _default(), **options)

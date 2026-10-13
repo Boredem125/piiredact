@@ -2,12 +2,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from piiredact import Mask, Redactor
-from piiredact.detectors.ner import SpacyDetector
+from depii import Mask, Redactor
+from depii.detectors.ner import SpacyDetector
 
 pd = pytest.importorskip("pandas")
 
-from piiredact.frames import redact_dataframe  # noqa: E402
+from depii.frames import redact_dataframe  # noqa: E402
 
 
 class TestDataFrame:
@@ -112,5 +112,5 @@ class TestNer:
             return real_import(name, *args, **kwargs)
 
         monkeypatch.setattr(builtins, "__import__", fake_import)
-        with pytest.raises(ImportError, match=r"piiredact\[ner\]"):
+        with pytest.raises(ImportError, match=r"depii\[ner\]"):
             SpacyDetector()

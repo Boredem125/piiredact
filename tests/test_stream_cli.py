@@ -5,9 +5,9 @@ import sys
 
 import pytest
 
-from piiredact import Redactor
-from piiredact.cli import EXIT_ERROR, EXIT_FOUND, EXIT_OK, main
-from piiredact.stream import chunks, redact_lines, redact_stream
+from depii import Redactor
+from depii.cli import EXIT_ERROR, EXIT_FOUND, EXIT_OK, main
+from depii.stream import chunks, redact_lines, redact_stream
 
 KEY = (
     "-----BEGIN RSA PRIVATE KEY-----\n"
@@ -75,13 +75,13 @@ class TestCli:
             "card **** **** **** 1111\n"
         )
         assert run("redact", "--operator", "drop", text=text)[1] == "card \n"
-        monkeypatch.setenv("PIIREDACT_HASH_KEY", "k" * 32)
+        monkeypatch.setenv("DEPII_HASH_KEY", "k" * 32)
         hashed = run("redact", "--operator", "hash", text=text)[1]
         assert hashed.startswith("card [CREDIT_CARD:") and "4111" not in hashed
 
     def test_hash_without_key_fails(self, run, monkeypatch):
-        monkeypatch.delenv("PIIREDACT_HASH_KEY", raising=False)
-        with pytest.raises(SystemExit, match="PIIREDACT_HASH_KEY"):
+        monkeypatch.delenv("DEPII_HASH_KEY", raising=False)
+        with pytest.raises(SystemExit, match="DEPII_HASH_KEY"):
             run("redact", "--operator", "hash", text="x\n")
 
     def test_filters(self, run):
@@ -143,7 +143,7 @@ class TestCli:
 
 def test_module_runs_as_a_pipe():
     done = subprocess.run(
-        [sys.executable, "-m", "piiredact", "redact", "-"],
+        [sys.executable, "-m", "depii", "redact", "-"],
         input="é jane@example.com\r\n".encode(),
         capture_output=True,
         check=True,

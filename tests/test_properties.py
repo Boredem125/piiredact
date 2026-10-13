@@ -6,7 +6,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 import synth
-from piiredact import Keep, Redactor
+from depii import Keep, Redactor
 
 REDACTOR = Redactor()
 STRICT = Redactor(strict=True)

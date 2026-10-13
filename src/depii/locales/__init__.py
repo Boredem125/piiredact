@@ -2,10 +2,10 @@
 
 A pack is a module that exports ``DETECTORS``, a sequence of detectors.
 Built-in packs live in this package. Third-party packs register themselves
-under the ``piiredact.locales`` entry-point group::
+under the ``depii.locales`` entry-point group::
 
-    [project.entry-points."piiredact.locales"]
-    br = "piiredact_br:DETECTORS"
+    [project.entry-points."depii.locales"]
+    br = "depii_br:DETECTORS"
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from functools import cache
 from importlib.metadata import entry_points
 from typing import Any
 
-ENTRY_POINT_GROUP = "piiredact.locales"
+ENTRY_POINT_GROUP = "depii.locales"
 
 # locale code -> module name inside this package
 BUILTIN: dict[str, str] = {

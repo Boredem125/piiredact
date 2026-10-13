@@ -11,7 +11,7 @@ import string
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from piiredact import validators as v
+from depii import validators as v
 
 UPPER = string.ascii_uppercase
 DIGITS = string.digits

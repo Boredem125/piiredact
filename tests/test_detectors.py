@@ -2,16 +2,16 @@
 
 import pytest
 
-import piiredact
-from piiredact import Redactor
+import depii
+from depii import Redactor
 
 
 def entities(text, **options):
-    return [span.entity for span in piiredact.scan(text, **options)]
+    return [span.entity for span in depii.scan(text, **options)]
 
 
 def values(text, **options):
-    return [span.text for span in piiredact.scan(text, **options)]
+    return [span.text for span in depii.scan(text, **options)]
 
 
 @pytest.mark.parametrize(
@@ -43,7 +43,7 @@ def values(text, **options):
     ],
 )  # fmt: skip
 def test_detects(text, entity, value):
-    found = {(span.entity, span.text) for span in piiredact.scan(text)}
+    found = {(span.entity, span.text) for span in depii.scan(text)}
     assert (entity, value) in found
 
 
@@ -67,17 +67,17 @@ def test_ignores(text):
 
 
 def test_url_is_redacted_only_when_it_carries_data():
-    assert piiredact.redact("see https://example.com/reset?token_id=abc.") == "see [URL]."
-    assert piiredact.redact("see https://example.com/docs") == "see https://example.com/docs"
-    assert piiredact.redact("see https://example.com/docs", strict=True) == "see [URL]"
+    assert depii.redact("see https://example.com/reset?token_id=abc.") == "see [URL]."
+    assert depii.redact("see https://example.com/docs") == "see https://example.com/docs"
+    assert depii.redact("see https://example.com/docs", strict=True) == "see [URL]"
 
 
 def test_url_credentials_are_not_split_by_the_email_detector():
-    assert piiredact.redact("db https://admin:hunter2@db.example.com/x") == "db [URL]"
+    assert depii.redact("db https://admin:hunter2@db.example.com/x") == "db [URL]"
 
 
 def test_neighbouring_numbers_are_both_found():
-    assert piiredact.redact("415-555-0132 98765 43210") == "[PHONE] [PHONE]"
+    assert depii.redact("415-555-0132 98765 43210") == "[PHONE] [PHONE]"
     assert values("+1 415 555 0132 9876543210 x")[0] == "+1 415 555 0132"
 
 
@@ -104,14 +104,14 @@ class TestSecrets:
         ],
     )
     def test_token_formats(self, secret):
-        assert piiredact.redact(f"key {secret} end") == "key [SECRET] end"
+        assert depii.redact(f"key {secret} end") == "key [SECRET] end"
 
     def test_private_key_block(self):
         block = (
             "-----BEGIN RSA PRIVATE KEY-----\nMIIBOgIBAAJBAKj34GkxFhD90vcNLYLInFEX6Ppy1tPf\n"
             "-----END RSA PRIVATE KEY-----"
         )
-        assert piiredact.redact(f"key:\n{block}\ndone") == "key:\n[SECRET]\ndone"
+        assert depii.redact(f"key:\n{block}\ndone") == "key:\n[SECRET]\ndone"
 
     @pytest.mark.parametrize(
         ("text", "expected"),
@@ -123,14 +123,13 @@ class TestSecrets:
         ],
     )
     def test_assignments_keep_the_key_name(self, text, expected):
-        assert piiredact.redact(text) == expected
+        assert depii.redact(text) == expected
 
 
 class TestUnicode:
     def test_fullwidth_digits(self):
         assert (
-            piiredact.redact("card ４１１１ １１１１ １１１１ １１１１ ok")
-            == "card [CREDIT_CARD] ok"
+            depii.redact("card ４１１１ １１１１ １１１１ １１１１ ok") == "card [CREDIT_CARD] ok"
         )
 
     def test_zero_width_characters_inside_a_value(self):
@@ -140,13 +139,13 @@ class TestUnicode:
         assert result.spans[0].text == "ja​ne@exam‍ple.com"
 
     def test_devanagari_digits_and_exotic_dashes(self):
-        assert piiredact.redact("SSN ०७८–०५–११२०") == "SSN [US_SSN]"
+        assert depii.redact("SSN ०७८–०५–११२०") == "SSN [US_SSN]"
 
     def test_offsets_point_into_the_original_text(self):
         text = "é​— jane@example.com — ４１１１１１１１１１１１１１１１"
-        for span in piiredact.scan(text):
+        for span in depii.scan(text):
             assert text[span.start : span.end] == span.text
 
     def test_surrounding_text_is_untouched(self):
         text = "naïve café — ７ jane@example.com ☕"
-        assert piiredact.redact(text) == "naïve café — ７ [EMAIL] ☕"
+        assert depii.redact(text) == "naïve café — ７ [EMAIL] ☕"

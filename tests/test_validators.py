@@ -1,6 +1,6 @@
 import pytest
 
-from piiredact import validators as v
+from depii import validators as v
 
 
 @pytest.mark.parametrize(

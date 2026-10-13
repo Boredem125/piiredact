@@ -1,4 +1,4 @@
-# piiredact
+# depii
 
 [![CI](https://github.com/Boredem125/piiredact/actions/workflows/ci.yml/badge.svg)](https://github.com/Boredem125/piiredact/actions/workflows/ci.yml)
 
@@ -11,8 +11,8 @@ Detect and redact personally identifiable information (PII) in text, nested data
 - **Several ways in:** strings, nested dicts and lists, a `logging` filter, a command line tool, and pandas.
 
 ```python
->>> import piiredact
->>> piiredact.redact("Mail jane@example.com or call +1 415 555 0132")
+>>> import depii
+>>> depii.redact("Mail jane@example.com or call +1 415 555 0132")
 'Mail [EMAIL] or call [PHONE]'
 
 ```
@@ -26,17 +26,17 @@ Using this library does not by itself make a system compliant with GDPR, HIPAA, 
 ## Install
 
 ```bash
-pip install piiredact
+pip install depii
 ```
 
-Optional extras: `piiredact[pandas]` for DataFrames, `piiredact[ner]` for names and places through spaCy, `piiredact[phone]` for stricter validation of international phone numbers, `piiredact[all]` for all three.
+Optional extras: `depii[pandas]` for DataFrames, `depii[ner]` for names and places through spaCy, `depii[phone]` for stricter validation of international phone numbers, `depii[all]` for all three.
 
 ## Usage
 
 ### Text
 
 ```python
->>> from piiredact import Redactor, Mask
+>>> from depii import Redactor, Mask
 >>> redactor = Redactor(policy={"CREDIT_CARD": Mask(keep_last=4)})
 >>> result = redactor.redact("jane@example.com paid with 4111 1111 1111 1111")
 >>> result.text
@@ -51,7 +51,7 @@ Build a `Redactor` once and reuse it. It is immutable and safe to share between 
 `scan` reports what was found without changing the text. The `repr` of a span leaves the matched value out, so spans can be logged:
 
 ```python
->>> piiredact.scan("SSN 078-05-1120")
+>>> depii.scan("SSN 078-05-1120")
 [Span(start=4, end=15, entity='US_SSN', score=1.0, detector='us_ssn')]
 
 ```
@@ -84,7 +84,7 @@ Build a `Redactor` once and reuse it. It is immutable and safe to share between 
 ### Nested data
 
 ```python
->>> piiredact.redact_obj({
+>>> depii.redact_obj({
 ...     "note": "call jane@example.com",
 ...     "user": {"firstName": "Jane", "password": "hunter2", "age": 41},
 ... })
@@ -98,7 +98,7 @@ Field names are used as hints. A field called `password`, `ssn`, `userEmail` or 
 
 ```python
 import logging
-from piiredact import PIIFilter
+from depii import PIIFilter
 
 handler = logging.StreamHandler()
 handler.addFilter(PIIFilter())
@@ -110,24 +110,24 @@ Attach the filter to handlers, not loggers: a filter on a logger does not see re
 ### Command line
 
 ```bash
-piiredact redact notes.txt -o clean.txt
-cat app.log | piiredact redact - > clean.log
-piiredact redact events.jsonl --format jsonl -o clean.jsonl
-piiredact redact people.csv --format csv --operator mask --keep-last 4 -o clean.csv
-piiredact scan notes.txt
-piiredact entities --locales us,in
+depii redact notes.txt -o clean.txt
+cat app.log | depii redact - > clean.log
+depii redact events.jsonl --format jsonl -o clean.jsonl
+depii redact people.csv --format csv --operator mask --keep-last 4 -o clean.csv
+depii scan notes.txt
+depii entities --locales us,in
 ```
 
 `scan` prints `file:line:column: ENTITY (score)` for each finding and exits with status 1 when anything is found, so it can gate a commit or a CI job. It does not print the matched values unless you pass `--show-values`.
 
-For `--operator hash`, the key is read from the environment variable `PIIREDACT_HASH_KEY`, so that it does not appear in the process list or shell history.
+For `--operator hash`, the key is read from the environment variable `DEPII_HASH_KEY`, so that it does not appear in the process list or shell history.
 
 Text input is streamed in chunks, so large files do not need to fit in memory. A file that is one single very long line is the exception.
 
 ### pandas
 
 ```python
-from piiredact.frames import redact_dataframe
+from depii.frames import redact_dataframe
 
 clean = redact_dataframe(df)  # every text column
 clean = redact_dataframe(df, columns=["notes"])  # only these
@@ -140,13 +140,13 @@ Column names are used as hints in the same way as field names.
 Patterns cannot find names. The optional spaCy detector can, at the cost of a model download and slower runs:
 
 ```bash
-pip install "piiredact[ner]"
+pip install "depii[ner]"
 python -m spacy download en_core_web_sm
 ```
 
 ```python
-from piiredact import Redactor
-from piiredact.detectors.ner import SpacyDetector
+from depii import Redactor
+from depii.detectors.ner import SpacyDetector
 
 redactor = Redactor(detectors=[SpacyDetector()])
 ```
@@ -156,7 +156,7 @@ It emits `PERSON`, `LOCATION` and `ORGANIZATION`. Its accuracy is that of the sp
 ### Your own detectors
 
 ```python
->>> from piiredact import PatternDetector, Redactor
+>>> from depii import PatternDetector, Redactor
 >>> employee_id = PatternDetector(
 ...     "EMPLOYEE_ID",
 ...     r"\bE\d{5}\b",
@@ -169,11 +169,11 @@ It emits `PERSON`, `LOCATION` and `ORGANIZATION`. Its accuracy is that of the sp
 
 ```
 
-A country pack is a module that exports `DETECTORS`. A separate package can register one under the `piiredact.locales` entry-point group, and it is then loaded like a built-in pack:
+A country pack is a module that exports `DETECTORS`. A separate package can register one under the `depii.locales` entry-point group, and it is then loaded like a built-in pack:
 
 ```toml
-[project.entry-points."piiredact.locales"]
-br = "piiredact_br:DETECTORS"
+[project.entry-points."depii.locales"]
+br = "depii_br:DETECTORS"
 ```
 
 ## What is detected
