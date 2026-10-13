@@ -1,5 +1,7 @@
 # piiredact
 
+[![CI](https://github.com/Boredem125/piiredact/actions/workflows/ci.yml/badge.svg)](https://github.com/Boredem125/piiredact/actions/workflows/ci.yml)
+
 Detect and redact personally identifiable information (PII) in text, nested data, logs, files and DataFrames.
 
 - **No dependencies** in the core. Pure Python, 3.10 and later.
