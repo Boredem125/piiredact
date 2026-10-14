@@ -1,3 +1,5 @@
+import inspect
+
 import pytest
 
 from depii import validators as v
@@ -33,6 +35,36 @@ from depii import validators as v
         (v.es_nie, "X1234567L", "X1234567A"),
         (v.it_fiscal_code, "RSSMRA80A01H501U", "RSSMRA80A01H501A"),
         (v.nl_bsn, "111222333", "111222334"),
+        # added in 0.2; the valid values are published sample numbers
+        (v.ca_sin, "130 692 544", "130 692 545"),
+        (v.au_tfn, "123 456 782", "123 456 783"),
+        (v.au_abn, "51 824 753 556", "51 824 753 557"),
+        (v.au_medicare, "2123 45670 1", "2123 45671 1"),
+        (v.nz_ird, "49-091-850", "49-091-851"),
+        (v.nz_nhi, "ZZZ0016", "ZZZ0017"),
+        (v.br_cpf, "529.982.247-25", "529.982.247-26"),
+        (v.br_cnpj, "11.222.333/0001-81", "11.222.333/0001-82"),
+        (v.cl_rut, "12.345.678-5", "12.345.678-K"),
+        (v.ar_cuit, "20-12345678-6", "20-12345678-7"),
+        (v.sg_nric, "S1234567D", "S1234567E"),
+        (v.jp_my_number, "123456789018", "123456789019"),
+        (v.kr_rrn, "900101-1234567", "901301-1234567"),
+        (v.cn_resident_id, "11010519491231002X", "110105194912310021"),
+        (v.pl_pesel, "44051401359", "44051401358"),
+        (v.pl_nip, "123-456-32-18", "123-456-32-19"),
+        (v.pl_id_card, "ABA300000", "ABA300001"),
+        (v.se_personnummer, "811228-9874", "811228-9875"),
+        (v.dk_cpr, "010190-1234", "320190-1234"),
+        (v.fi_hetu, "131052-308T", "131052-308U"),
+        (v.be_national_number, "85.07.30-033.28", "85.07.30-033.29"),
+        (v.pt_nif, "123456789", "123456788"),
+        (v.ie_ppsn, "1234567T", "1234567U"),
+        (v.at_svnr, "1237 010180", "1238 010180"),
+        (v.ch_ahv, "756.9217.0769.85", "756.9217.0769.86"),
+        (v.no_fnr, "01010750160", "01010750161"),
+        (v.tr_tckn, "10000000146", "10000000147"),
+        (v.za_id, "8001015009087", "8001015009088"),
+        (v.ae_emirates_id, "784-1968-6570305-0", "784-1968-6570305-1"),
     ],
 )
 def test_check_digits(check, good, bad):
@@ -54,15 +86,24 @@ def test_de_tax_id_needs_one_repeated_digit():
     assert not v.de_tax_id("12345678903")
 
 
+# Every public bool validator, so a new one is covered without being listed here.
+ALL_VALIDATORS = [
+    function
+    for name, function in vars(v).items()
+    if inspect.isfunction(function)
+    and function.__module__ == v.__name__
+    and not name.startswith("_")
+    and name not in {"digits_of", "alnum_of"}
+]
+
+
+def test_validator_list_is_complete():
+    assert len(ALL_VALIDATORS) > 50
+
+
+@pytest.mark.parametrize("check", ALL_VALIDATORS, ids=lambda f: f.__name__)
 @pytest.mark.parametrize(
-    "check",
-    [
-        v.luhn, v.verhoeff, v.credit_card, v.iban, v.bic, v.aba_routing, v.base58check,
-        v.bech32, v.ipv6, v.geo_coordinates, v.vin_check_digit, v.us_ssn, v.in_aadhaar,
-        v.in_gstin, v.gb_nino, v.gb_nhs, v.de_tax_id, v.fr_nir, v.es_dni, v.es_nie,
-        v.it_fiscal_code, v.nl_bsn,
-    ],
-)  # fmt: skip
-@pytest.mark.parametrize("junk", ["", " ", "x", "0", "-", "é", "1" * 400, "A" * 400, "\x00"])
+    "junk", ["", " ", "x", "0", "-", "é", "1" * 400, "A" * 400, "\x00", "0" * 18, "Ñ" * 18]
+)
 def test_validators_never_raise(check, junk):
     assert check(junk) in (True, False)

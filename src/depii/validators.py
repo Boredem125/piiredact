@@ -7,6 +7,7 @@ detection miss into a crash.
 
 from __future__ import annotations
 
+import datetime
 import hashlib
 import ipaddress
 from collections import Counter
@@ -382,3 +383,423 @@ def nl_bsn(value: str) -> bool:
         (ord(ch) - 48) * weight for ch, weight in zip(digits[:8], range(9, 1, -1), strict=True)
     )
     return (total - (ord(digits[8]) - 48)) % 11 == 0
+
+
+# ------------------------------------------------------------------- helpers
+
+
+def _date_ok(year: int, month: int, day: int) -> bool:
+    try:
+        datetime.date(year, month, day)
+    except ValueError:
+        return False
+    return True
+
+
+def _two_digit_year_date_ok(yy: int, month: int, day: int) -> bool:
+    """A date with a two-digit year, valid in either the 1900s or the 2000s."""
+    return _date_ok(1900 + yy, month, day) or _date_ok(2000 + yy, month, day)
+
+
+def _ints(digits: str) -> list[int]:
+    return [ord(ch) - 48 for ch in digits]
+
+
+def _weighted(values: list[int], weights: tuple[int, ...]) -> int:
+    return sum(v * w for v, w in zip(values, weights, strict=True))
+
+
+# --------------------------------------------------------------- the Americas
+
+
+def ca_sin(value: str) -> bool:
+    """Canadian Social Insurance Number: Luhn; 0 and 8 are never issued first."""
+    digits = digits_of(value)
+    return len(digits) == 9 and digits[0] not in "08" and luhn(digits)
+
+
+def br_cpf(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) != 11 or len(set(digits)) == 1:
+        return False
+    d = _ints(digits)
+    first = sum(d[i] * (10 - i) for i in range(9)) * 10 % 11 % 10
+    second = sum(d[i] * (11 - i) for i in range(10)) * 10 % 11 % 10
+    return d[9] == first and d[10] == second
+
+
+_CNPJ_W1 = (5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2)
+_CNPJ_W2 = (6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2)
+
+
+def br_cnpj(value: str) -> bool:
+    """Brazilian company number, including the alphanumeric form issued from July 2026."""
+    compact = alnum_of(value)
+    if len(compact) != 14 or not compact.isascii() or not compact[12:].isdigit():
+        return False
+    if len(set(compact)) == 1:
+        return False
+    # Letters count as their ASCII code minus 48, so digits keep their value.
+    values = [ord(ch) - 48 for ch in compact[:12]]
+
+    def check(vals: list[int], weights: tuple[int, ...]) -> int:
+        remainder = _weighted(vals, weights) % 11
+        return 0 if remainder < 2 else 11 - remainder
+
+    first = check(values, _CNPJ_W1)
+    second = check([*values, first], _CNPJ_W2)
+    return compact[12:] == f"{first}{second}"
+
+
+_CURP_ALPHABET = "0123456789ABCDEFGHIJKLMNÑOPQRSTUVWXYZ"
+
+
+def mx_curp(value: str) -> bool:
+    code = value.upper()
+    if len(code) != 18 or not code[17].isdigit() or not code[4:10].isdigit():
+        return False
+    if not _two_digit_year_date_ok(int(code[4:6]), int(code[6:8]), int(code[8:10])):
+        return False
+    total = 0
+    for index, char in enumerate(code[:17]):
+        position = _CURP_ALPHABET.find(char)
+        if position < 0:
+            return False
+        total += position * (18 - index)
+    return (10 - total % 10) % 10 == int(code[17])
+
+
+def mx_rfc(value: str) -> bool:
+    """Mexican tax ID. Only the embedded date is checked; the check digit is not."""
+    date = value.upper()[-9:-3]
+    if not date.isdigit():
+        return False
+    return _two_digit_year_date_ok(int(date[:2]), int(date[2:4]), int(date[4:]))
+
+
+def cl_rut(value: str) -> bool:
+    compact = alnum_of(value)
+    if not 8 <= len(compact) <= 9 or not compact[:-1].isdigit():
+        return False
+    total = 0
+    for index, char in enumerate(reversed(compact[:-1])):
+        total += (ord(char) - 48) * (2 + index % 6)
+    remainder = 11 - total % 11
+    expected = "0" if remainder == 11 else "K" if remainder == 10 else str(remainder)
+    return compact[-1] == expected
+
+
+_CUIT_PREFIXES = frozenset({"20", "23", "24", "25", "26", "27", "30", "33", "34"})
+
+
+def ar_cuit(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) != 11 or digits[:2] not in _CUIT_PREFIXES:
+        return False
+    d = _ints(digits)
+    remainder = 11 - _weighted(d[:10], (5, 4, 3, 2, 7, 6, 5, 4, 3, 2)) % 11
+    if remainder == 10:
+        return False
+    return (0 if remainder == 11 else remainder) == d[10]
+
+
+# -------------------------------------------------------------------- Oceania
+
+
+def au_tfn(value: str) -> bool:
+    digits = digits_of(value)
+    weights = {9: (1, 4, 3, 7, 5, 8, 6, 9, 10), 8: (10, 7, 8, 4, 6, 3, 5, 1)}.get(len(digits))
+    if weights is None or len(set(digits)) == 1:
+        return False
+    return _weighted(_ints(digits), weights) % 11 == 0
+
+
+def au_abn(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) != 11 or digits[0] == "0":
+        return False
+    d = _ints(digits)
+    d[0] -= 1
+    return _weighted(d, (10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19)) % 89 == 0
+
+
+def au_medicare(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) not in (10, 11) or digits[0] not in "23456":
+        return False
+    d = _ints(digits)
+    return _weighted(d[:8], (1, 3, 7, 9, 1, 3, 7, 9)) % 10 == d[8]
+
+
+def nz_ird(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) not in (8, 9) or not 10_000_000 < int(digits) < 150_000_000:
+        return False
+    padded = digits.zfill(9)
+    base, check = _ints(padded[:8]), ord(padded[8]) - 48
+
+    def compute(weights: tuple[int, ...]) -> int:
+        remainder = _weighted(base, weights) % 11
+        return 0 if remainder == 0 else 11 - remainder
+
+    result = compute((3, 2, 7, 6, 5, 4, 3, 2))
+    if result == 10:
+        result = compute((7, 4, 3, 2, 5, 2, 7, 6))
+    return result != 10 and result == check
+
+
+# Letters of an NHI number count A=1 ... Z=24, skipping I and O.
+_NHI_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+
+
+def nz_nhi(value: str) -> bool:
+    """New Zealand NHI number in the original AAANNNC format."""
+    code = value.upper()
+    if len(code) != 7 or any(ch not in _NHI_LETTERS for ch in code[:3]):
+        return False
+    if not code[3:].isdigit():
+        return False
+    values = [_NHI_LETTERS.index(ch) + 1 for ch in code[:3]] + _ints(code[3:6])
+    remainder = _weighted(values, (7, 6, 5, 4, 3, 2)) % 11
+    if remainder == 0:
+        return False
+    check = 11 - remainder
+    return (0 if check == 10 else check) == int(code[6])
+
+
+# ----------------------------------------------------------------------- Asia
+
+_SG_LETTERS = {"S": "JZIHGFEDCBA", "T": "JZIHGFEDCBA", "F": "XWUTRQPNMLK", "G": "XWUTRQPNMLK"}
+
+
+def sg_nric(value: str) -> bool:
+    """Singapore NRIC or FIN. M-series FINs (issued from 2022) are only checked for shape."""
+    code = value.upper()
+    if len(code) != 9 or not code[1:8].isdigit() or not code[8].isalpha():
+        return False
+    if code[0] == "M":
+        return True
+    letters = _SG_LETTERS.get(code[0])
+    if letters is None:
+        return False
+    total = _weighted(_ints(code[1:8]), (2, 7, 6, 5, 4, 3, 2))
+    if code[0] in "TG":
+        total += 4
+    return letters[total % 11] == code[8]
+
+
+def jp_my_number(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) != 12:
+        return False
+    d = _ints(digits)
+    total = 0
+    for n in range(1, 12):
+        q = n + 1 if n <= 6 else n - 5
+        total += d[11 - n] * q
+    remainder = total % 11
+    return (0 if remainder <= 1 else 11 - remainder) == d[11]
+
+
+_KR_CENTURY = {
+    "1": 1900, "2": 1900, "3": 2000, "4": 2000,
+    "5": 1900, "6": 1900, "7": 2000, "8": 2000,
+}  # fmt: skip
+
+
+def kr_rrn(value: str) -> bool:
+    """Korean resident registration number. Since 2020 the last digits are random,
+    so only the date and the century digit are checked."""
+    digits = digits_of(value)
+    if len(digits) != 13 or digits[6] not in _KR_CENTURY:
+        return False
+    year = _KR_CENTURY[digits[6]] + int(digits[:2])
+    return _date_ok(year, int(digits[2:4]), int(digits[4:6]))
+
+
+_CN_WEIGHTS = (7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2)
+
+
+def cn_resident_id(value: str) -> bool:
+    code = value.upper()
+    if len(code) != 18 or not code[:17].isdigit() or code[17] not in "0123456789X":
+        return False
+    if not _date_ok(int(code[6:10]), int(code[10:12]), int(code[12:14])):
+        return False
+    return "10X98765432"[_weighted(_ints(code[:17]), _CN_WEIGHTS) % 11] == code[17]
+
+
+# ----------------------------------------------------------- more of Europe
+
+
+def pl_pesel(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) != 11:
+        return False
+    d = _ints(digits)
+    if (10 - _weighted(d[:10], (1, 3, 7, 9, 1, 3, 7, 9, 1, 3)) % 10) % 10 != d[10]:
+        return False
+    raw_month = int(digits[2:4])
+    # The month carries the century: +80 for the 1800s, +0, +20 2000s, +40, +60.
+    century = (1900, 2000, 2100, 2200, 1800)[raw_month // 20]
+    return _date_ok(century + int(digits[:2]), raw_month % 20, int(digits[4:6]))
+
+
+def pl_nip(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) != 10:
+        return False
+    d = _ints(digits)
+    remainder = _weighted(d[:9], (6, 5, 7, 2, 3, 4, 5, 6, 7)) % 11
+    return remainder != 10 and remainder == d[9]
+
+
+def pl_id_card(value: str) -> bool:
+    code = value.upper()
+    if len(code) != 9 or not code.isascii() or not code[:3].isalpha() or not code[3:].isdigit():
+        return False
+    values = [ord(ch) - 55 for ch in code[:3]] + _ints(code[3:])
+    return _weighted(values, (7, 3, 1, 9, 7, 3, 1, 7, 3)) % 10 == 0
+
+
+def se_personnummer(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) == 12:
+        digits = digits[2:]
+    if len(digits) != 10 or not luhn(digits):
+        return False
+    day = int(digits[4:6])
+    if day > 60:  # coordination number
+        day -= 60
+    return _two_digit_year_date_ok(int(digits[:2]), int(digits[2:4]), day)
+
+
+def dk_cpr(value: str) -> bool:
+    """Danish CPR number. The mod-11 check was dropped in 2007, so only the date is checked."""
+    digits = digits_of(value)
+    if len(digits) != 10:
+        return False
+    return _two_digit_year_date_ok(int(digits[4:6]), int(digits[2:4]), int(digits[:2]))
+
+
+_FI_CHECK = "0123456789ABCDEFHJKLMNPRSTUVWXY"
+_FI_CENTURY = {
+    "+": 1800,
+    "-": 1900, "Y": 1900, "X": 1900, "W": 1900, "V": 1900, "U": 1900,
+    "A": 2000, "B": 2000, "C": 2000, "D": 2000, "E": 2000, "F": 2000,
+}  # fmt: skip
+
+
+def fi_hetu(value: str) -> bool:
+    code = value.upper()
+    if len(code) != 11 or code[6] not in _FI_CENTURY:
+        return False
+    body = code[:6] + code[7:10]
+    if not body.isdigit():
+        return False
+    year = _FI_CENTURY[code[6]] + int(code[4:6])
+    if not _date_ok(year, int(code[2:4]), int(code[:2])):
+        return False
+    return _FI_CHECK[int(body) % 31] == code[10]
+
+
+def be_national_number(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) != 11:
+        return False
+    body, check = int(digits[:9]), int(digits[9:])
+    # For people born from 2000 on, a 2 is prepended before the check is computed.
+    return check in (97 - body % 97, 97 - (2_000_000_000 + body) % 97)
+
+
+def pt_nif(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) != 9 or digits[0] == "0":
+        return False
+    d = _ints(digits)
+    check = 11 - sum(d[i] * (9 - i) for i in range(8)) % 11
+    return (0 if check >= 10 else check) == d[8]
+
+
+_IE_CHECK = "WABCDEFGHIJKLMNOPQRSTUV"
+
+
+def ie_ppsn(value: str) -> bool:
+    code = value.upper().replace(" ", "")
+    if len(code) not in (8, 9) or not code[:7].isdigit() or not code[7:].isalpha():
+        return False
+    if not code.isascii():
+        return False
+    total = _weighted(_ints(code[:7]), (8, 7, 6, 5, 4, 3, 2))
+    if len(code) == 9 and code[8] != "W":
+        total += 9 * (ord(code[8]) - 64)
+    return _IE_CHECK[total % 23] == code[7]
+
+
+def at_svnr(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) != 10 or digits[0] == "0":
+        return False
+    d = _ints(digits)
+    remainder = _weighted(d, (3, 7, 9, 0, 5, 8, 4, 2, 1, 6)) % 11
+    if remainder == 10 or remainder != d[3]:
+        return False
+    return _two_digit_year_date_ok(int(digits[8:]), int(digits[6:8]), int(digits[4:6]))
+
+
+def ch_ahv(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) != 13 or not digits.startswith("756"):
+        return False
+    d = _ints(digits)
+    total = sum(v * (1 if i % 2 == 0 else 3) for i, v in enumerate(d[:12]))
+    return (10 - total % 10) % 10 == d[12]
+
+
+def no_fnr(value: str) -> bool:
+    """Norwegian national identity number, D-number, H-number or synthetic test number."""
+    digits = digits_of(value)
+    if len(digits) != 11:
+        return False
+    d = _ints(digits)
+
+    def check(count: int, weights: tuple[int, ...]) -> int:
+        result = 11 - _weighted(d[:count], weights) % 11
+        return 0 if result == 11 else result
+
+    if check(9, (3, 7, 6, 1, 8, 9, 4, 5, 2)) != d[9]:
+        return False
+    if check(10, (5, 4, 3, 2, 7, 6, 5, 4, 3, 2)) != d[10]:
+        return False
+    day, month = int(digits[:2]), int(digits[2:4])
+    if day > 40:  # D-number
+        day -= 40
+    if month > 80:  # synthetic test number
+        month -= 80
+    elif month > 40:  # H-number
+        month -= 40
+    return _two_digit_year_date_ok(int(digits[4:6]), month, day)
+
+
+def tr_tckn(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) != 11 or digits[0] == "0":
+        return False
+    d = _ints(digits)
+    tenth = (sum(d[0:9:2]) * 7 - sum(d[1:8:2])) % 10
+    return tenth == d[9] and sum(d[:10]) % 10 == d[10]
+
+
+# --------------------------------------------------- Africa and the Middle East
+
+
+def za_id(value: str) -> bool:
+    digits = digits_of(value)
+    if len(digits) != 13 or digits[10] not in "012" or not luhn(digits):
+        return False
+    return _two_digit_year_date_ok(int(digits[:2]), int(digits[2:4]), int(digits[4:6]))
+
+
+def ae_emirates_id(value: str) -> bool:
+    digits = digits_of(value)
+    return len(digits) == 15 and digits.startswith("784") and luhn(digits)

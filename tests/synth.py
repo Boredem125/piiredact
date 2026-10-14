@@ -207,12 +207,256 @@ def secret(rng: random.Random) -> str:
     )
 
 
+# ---------------------------------------------------- countries added in 0.2
+
+
+def _date(rng: random.Random, start: int = 1940, end: int = 2005) -> tuple[int, int, int]:
+    """A random calendar date. Day 28 at most, so every month is valid."""
+    return rng.randint(start, end), rng.randint(1, 12), rng.randint(1, 28)
+
+
+def _yymmdd(rng: random.Random) -> str:
+    year, month, day = _date(rng)
+    return f"{year % 100:02d}{month:02d}{day:02d}"
+
+
+def _ddmmyy(rng: random.Random) -> str:
+    year, month, day = _date(rng)
+    return f"{day:02d}{month:02d}{year % 100:02d}"
+
+
+def ca_sin(rng: random.Random) -> str:
+    number = _with_check(rng.choice("1234567") + _digits(rng, 7), v.ca_sin)
+    sep = rng.choice(" -")
+    return f"{number[:3]}{sep}{number[3:6]}{sep}{number[6:]}"
+
+
+def ca_postal_code(rng: random.Random) -> str:
+    first, rest = "ABCEGHJKLMNPRSTVXY", "ABCEGHJKLMNPRSTVWXYZ"
+    return (
+        f"{rng.choice(first)}{rng.randint(0, 9)}{rng.choice(rest)} "
+        f"{rng.randint(0, 9)}{rng.choice(rest)}{rng.randint(0, 9)}"
+    )
+
+
+def au_tfn(rng: random.Random) -> str:
+    number = _retry(lambda: _with_check(_digits(rng, 8), v.au_tfn))
+    return f"{number[:3]} {number[3:6]} {number[6:]}"
+
+
+def au_abn(rng: random.Random) -> str:
+    while True:
+        number = rng.choice("123456789") + _digits(rng, 10)
+        if v.au_abn(number):
+            return f"{number[:2]} {number[2:5]} {number[5:8]} {number[8:]}"
+
+
+def au_medicare(rng: random.Random) -> str:
+    body = rng.choice("23456") + _digits(rng, 7)
+    number = next(body + c + "1" for c in DIGITS if v.au_medicare(body + c + "1"))
+    return f"{number[:4]} {number[4:9]} {number[9]}"
+
+
+def nz_ird(rng: random.Random) -> str:
+    def make() -> str:
+        body = f"{rng.randint(10_000_001, 149_999_999) // 10:08d}"
+        return _with_check(body, v.nz_ird)
+
+    number = _retry(make).zfill(9)
+    return f"{number[:3]}-{number[3:6]}-{number[6:]}"
+
+
+def nz_nhi(rng: random.Random) -> str:
+    letters = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+    return _retry(lambda: _with_check(_letters(rng, 3, letters) + _digits(rng, 3), v.nz_nhi))
+
+
+def br_cpf(rng: random.Random) -> str:
+    number = _digits(rng, 9)
+    for _ in range(2):
+        number = next(number + c for c in DIGITS if _cpf_partial_ok(number + c))
+    return f"{number[:3]}.{number[3:6]}.{number[6:9]}-{number[9:]}"
+
+
+def _cpf_partial_ok(prefix: str) -> bool:
+    d = [int(c) for c in prefix]
+    n = len(d) - 1
+    expected = sum(d[i] * (n + 1 - i) for i in range(n)) * 10 % 11 % 10
+    return d[n] == expected
+
+
+def br_cnpj(rng: random.Random) -> str:
+    alphabet = DIGITS + (UPPER if rng.random() < 0.3 else "")
+    while True:
+        body = _letters(rng, 8, alphabet) + "0001"
+        for c1 in DIGITS:
+            for c2 in DIGITS:
+                value = body + c1 + c2
+                if v.br_cnpj(value):
+                    return f"{value[:2]}.{value[2:5]}.{value[5:8]}/{value[8:12]}-{value[12:]}"
+
+
+_CURP_STATES = ("AS", "BC", "CL", "DF", "GT", "JC", "MC", "NL", "OC", "PL", "SP", "VZ", "YN")
+
+
+def mx_curp(rng: random.Random) -> str:
+    consonants = "BCDFGHJKLMNPQRSTVWXYZ"
+    year, month, day = _date(rng)
+    body = (
+        rng.choice(UPPER) + rng.choice("AEIOU") + _letters(rng, 2)
+        + f"{year % 100:02d}{month:02d}{day:02d}" + rng.choice("HM") + rng.choice(_CURP_STATES)
+        + _letters(rng, 3, consonants) + (rng.choice(DIGITS) if year < 2000 else rng.choice(UPPER))
+    )  # fmt: skip
+    return _with_check(body, v.mx_curp)
+
+
+def mx_rfc(rng: random.Random) -> str:
+    return _letters(rng, 4) + _yymmdd(rng) + _letters(rng, 3, UPPER + DIGITS)
+
+
+def cl_rut(rng: random.Random) -> str:
+    body = str(rng.randint(5_000_000, 25_999_999))
+    value = _with_check(body, v.cl_rut, DIGITS + "K")
+    number, check = value[:-1], value[-1]
+    grouped = f"{int(number):,}".replace(",", ".")
+    return f"{grouped}-{check}"
+
+
+def ar_cuit(rng: random.Random) -> str:
+    def make() -> str:
+        return _with_check(rng.choice(["20", "23", "27", "30"]) + _digits(rng, 8), v.ar_cuit)
+
+    value = _retry(make)
+    return f"{value[:2]}-{value[2:10]}-{value[10]}"
+
+
+def sg_nric(rng: random.Random) -> str:
+    return _with_check(rng.choice("STFG") + _digits(rng, 7), v.sg_nric, UPPER)
+
+
+def jp_my_number(rng: random.Random) -> str:
+    value = _with_check(rng.choice("123456789") + _digits(rng, 10), v.jp_my_number)
+    return f"{value[:4]} {value[4:8]} {value[8:]}"
+
+
+def kr_rrn(rng: random.Random) -> str:
+    year, month, day = _date(rng, 1950, 2015)
+    gender = rng.choice("12") if year < 2000 else rng.choice("34")
+    return f"{year % 100:02d}{month:02d}{day:02d}-{gender}{_digits(rng, 6)}"
+
+
+def cn_resident_id(rng: random.Random) -> str:
+    year, month, day = _date(rng)
+    body = f"{rng.randint(110000, 659999)}{year}{month:02d}{day:02d}{_digits(rng, 3)}"
+    return _with_check(body, v.cn_resident_id, DIGITS + "X")
+
+
+def pl_pesel(rng: random.Random) -> str:
+    year, month, day = _date(rng, 1940, 2015)
+    month_code = month + (20 if year >= 2000 else 0)
+    body = f"{year % 100:02d}{month_code:02d}{day:02d}{_digits(rng, 4)}"
+    return _with_check(body, v.pl_pesel)
+
+
+def pl_nip(rng: random.Random) -> str:
+    value = _retry(lambda: _with_check(rng.choice("123456789") + _digits(rng, 8), v.pl_nip))
+    return f"{value[:3]}-{value[3:6]}-{value[6:8]}-{value[8:]}"
+
+
+def pl_id_card(rng: random.Random) -> str:
+    letters, rest = _letters(rng, 3), _digits(rng, 5)
+    for check in DIGITS:
+        if v.pl_id_card(letters + check + rest):
+            return letters + check + rest
+    raise ValueError("unreachable: weight 9 covers every remainder")
+
+
+def se_personnummer(rng: random.Random) -> str:
+    value = _with_check(_yymmdd(rng) + _digits(rng, 3), v.se_personnummer)
+    return f"{value[:6]}-{value[6:]}"
+
+
+def dk_cpr(rng: random.Random) -> str:
+    return f"{_ddmmyy(rng)}-{_digits(rng, 4)}"
+
+
+def fi_hetu(rng: random.Random) -> str:
+    year, month, day = _date(rng, 1950, 2015)
+    sign = "-" if year < 2000 else "A"
+    body = f"{day:02d}{month:02d}{year % 100:02d}{sign}{rng.randint(2, 899):03d}"
+    return _with_check(body, v.fi_hetu, "0123456789ABCDEFHJKLMNPRSTUVWXY")
+
+
+def be_national_number(rng: random.Random) -> str:
+    year, month, day = _date(rng, 1940, 1999)
+    body = f"{year % 100:02d}{month:02d}{day:02d}{rng.randint(1, 997):03d}"
+    value = f"{body}{97 - int(body) % 97:02d}"
+    return f"{value[:2]}.{value[2:4]}.{value[4:6]}-{value[6:9]}.{value[9:]}"
+
+
+def pt_nif(rng: random.Random) -> str:
+    return _with_check(rng.choice("123") + _digits(rng, 7), v.pt_nif)
+
+
+def ie_ppsn(rng: random.Random) -> str:
+    return _with_check(_digits(rng, 7), v.ie_ppsn, "WABCDEFGHIJKLMNOPQRSTUV")
+
+
+def at_svnr(rng: random.Random) -> str:
+    def make() -> str:
+        serial, date = rng.choice("123456789") + _digits(rng, 2), _ddmmyy(rng)
+        for check in DIGITS:
+            if v.at_svnr(serial + check + date):
+                return f"{serial}{check} {date}"
+        raise ValueError("remainder 10")
+
+    return _retry(make)
+
+
+def ch_ahv(rng: random.Random) -> str:
+    value = _with_check("756" + _digits(rng, 9), v.ch_ahv)
+    return f"{value[:3]}.{value[3:7]}.{value[7:11]}.{value[11:]}"
+
+
+def no_fnr(rng: random.Random) -> str:
+    def make() -> str:
+        body = _ddmmyy(rng) + _digits(rng, 3)
+        for k1 in DIGITS:
+            for k2 in DIGITS:
+                if v.no_fnr(body + k1 + k2):
+                    return body + k1 + k2
+        raise ValueError("no check digits fit")
+
+    value = _retry(make)
+    return f"{value[:6]} {value[6:]}"
+
+
+def tr_tckn(rng: random.Random) -> str:
+    d = [rng.randint(1, 9)] + [rng.randint(0, 9) for _ in range(8)]
+    tenth = (sum(d[0:9:2]) * 7 - sum(d[1:8:2])) % 10
+    d.append(tenth)
+    d.append(sum(d) % 10)
+    return "".join(map(str, d))
+
+
+def za_id(rng: random.Random) -> str:
+    return _with_check(_yymmdd(rng) + _digits(rng, 4) + rng.choice("01") + "8", v.za_id)
+
+
+def ae_emirates_id(rng: random.Random) -> str:
+    value = _with_check(f"784{rng.randint(1950, 2010)}{_digits(rng, 7)}", v.ae_emirates_id)
+    return f"{value[:3]}-{value[3:7]}-{value[7:14]}-{value[14]}"
+
+
 @dataclass(frozen=True)
 class Kind:
     entity: str
     make: Callable[[random.Random], str]
     # Sentences with one {} slot. Identifiers that need a context word get one here.
     templates: tuple[str, ...]
+    # True when the value is only recognised next to a context word, so it
+    # cannot be planted in arbitrary text.
+    needs_context: bool = False
 
 
 _PLAIN = (
@@ -237,13 +481,46 @@ KINDS: tuple[Kind, ...] = (
     Kind("IN_PAN", in_pan, (*_PLAIN, "PAN {} linked.")),
     Kind("IN_GSTIN", in_gstin, _PLAIN),
     Kind("GB_NINO", gb_nino, (*_PLAIN, "NI number {}.")),
-    Kind("GB_NHS_NUMBER", gb_nhs, ("NHS number {} checked.", "Patient NHS no: {}")),
+    Kind("GB_NHS_NUMBER", gb_nhs, ("NHS number {} checked.", "Patient NHS no: {}"), True),
     Kind("DE_TAX_ID", de_tax_id, (*_PLAIN, "Steuer-ID: {}")),
     Kind("FR_NIR", fr_nir, _PLAIN),
     Kind("ES_DNI", es_dni, (*_PLAIN, "DNI {}.")),
     Kind("ES_NIE", es_nie, _PLAIN),
     Kind("IT_FISCAL_CODE", it_fiscal_code, _PLAIN),
-    Kind("NL_BSN", nl_bsn, ("BSN {} is geregistreerd.", "burgerservicenummer: {}")),
+    Kind("NL_BSN", nl_bsn, ("BSN {} is geregistreerd.", "burgerservicenummer: {}"), True),
+    # added in 0.2
+    Kind("CA_SIN", ca_sin, (*_PLAIN, "SIN {} on file.")),
+    Kind("CA_POSTAL_CODE", ca_postal_code, (*_PLAIN, "Ottawa ON {}")),
+    Kind("AU_TFN", au_tfn, ("TFN {} lodged.", "Tax file number: {}"), True),
+    Kind("AU_ABN", au_abn, (*_PLAIN, "ABN {}")),
+    Kind("AU_MEDICARE", au_medicare, ("Medicare card {} valid.", "medicare no {}"), True),
+    Kind("NZ_IRD", nz_ird, ("IRD number {} confirmed.", "Inland Revenue: {}"), True),
+    Kind("NZ_NHI", nz_nhi, ("NHI {} admitted.", "National Health Index {}"), True),
+    Kind("BR_CPF", br_cpf, (*_PLAIN, "CPF {}")),
+    Kind("BR_CNPJ", br_cnpj, (*_PLAIN, "CNPJ {}")),
+    Kind("MX_CURP", mx_curp, (*_PLAIN, "CURP {}")),
+    Kind("MX_RFC", mx_rfc, (*_PLAIN, "RFC {}")),
+    Kind("CL_RUT", cl_rut, (*_PLAIN, "RUT {}")),
+    Kind("AR_CUIT", ar_cuit, (*_PLAIN, "CUIT {}")),
+    Kind("SG_NRIC", sg_nric, (*_PLAIN, "NRIC {}")),
+    Kind("JP_MY_NUMBER", jp_my_number, ("マイナンバー {} を登録", "My Number: {}"), True),
+    Kind("KR_RRN", kr_rrn, (*_PLAIN, "주민등록번호 {}")),
+    Kind("CN_RESIDENT_ID", cn_resident_id, (*_PLAIN, "身份证号码 {}")),
+    Kind("PL_PESEL", pl_pesel, ("PESEL {} w systemie.", "numer PESEL: {}"), True),
+    Kind("PL_NIP", pl_nip, (*_PLAIN, "NIP {}")),
+    Kind("PL_ID_CARD", pl_id_card, ("dowód osobisty {}", "seria i numer dowodu: {}"), True),
+    Kind("SE_PERSONNUMMER", se_personnummer, (*_PLAIN, "personnummer {}")),
+    Kind("DK_CPR", dk_cpr, ("CPR-nummer {} registreret.", "cpr: {}"), True),
+    Kind("FI_HETU", fi_hetu, (*_PLAIN, "henkilötunnus {}")),
+    Kind("BE_NATIONAL_NUMBER", be_national_number, (*_PLAIN, "rijksregisternummer {}")),
+    Kind("PT_NIF", pt_nif, ("NIF {} registado.", "número de contribuinte: {}"), True),
+    Kind("IE_PPSN", ie_ppsn, (*_PLAIN, "PPS number {}")),
+    Kind("AT_SVNR", at_svnr, (*_PLAIN, "Sozialversicherungsnummer {}")),
+    Kind("CH_AHV", ch_ahv, (*_PLAIN, "AHV-Nummer {}")),
+    Kind("NO_FNR", no_fnr, (*_PLAIN, "fødselsnummer {}")),
+    Kind("TR_TCKN", tr_tckn, ("TC Kimlik No: {}", "kimlik numarası {} doğrulandı"), True),
+    Kind("ZA_ID", za_id, (*_PLAIN, "SA ID {}")),
+    Kind("AE_EMIRATES_ID", ae_emirates_id, (*_PLAIN, "Emirates ID {}")),
 )
 
 # Text that looks numeric or token-like but holds no PII.

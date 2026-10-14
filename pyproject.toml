@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-authors = [{ name = "depii contributors" }]
+authors = [{ name = "Aryan Hundia", email = "aryanhundia125@gmail.com" }]
 keywords = ["pii", "privacy", "redaction", "anonymization", "data-protection", "gdpr", "dpdp", "logging"]
 classifiers = [
     "Development Status :: 3 - Alpha",

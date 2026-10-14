@@ -29,9 +29,34 @@ BUILTIN: dict[str, str] = {
     "it": "it",
     "nl": "nl",
     "eu": "eu",
+    # added in 0.2
+    "ca": "ca",
+    "au": "au",
+    "nz": "nz",
+    "br": "br",
+    "mx": "mx",
+    "cl": "cl",
+    "ar": "ar",
+    "sg": "sg",
+    "jp": "jp",
+    "kr": "kr",
+    "cn": "cn",
+    "pl": "pl",
+    "se": "se",
+    "dk": "dk",
+    "fi": "fi",
+    "be": "be",
+    "pt": "pt",
+    "ie": "ie",
+    "at": "at",
+    "ch": "ch",
+    "no": "no",
+    "tr": "tr",
+    "za": "za",
+    "ae": "ae",
 }
 
-_ALIASES = {"uk": "gb", "usa": "us", "ind": "in"}
+_ALIASES = {"uk": "gb", "usa": "us", "ind": "in", "uae": "ae", "kor": "kr", "chn": "cn"}
 
 
 def _plugins() -> dict[str, Any]:

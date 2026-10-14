@@ -6,7 +6,7 @@ Detect and redact personally identifiable information (PII) in text, nested data
 
 - **No dependencies** in the core. Pure Python, 3.10 and later.
 - **Validated, not just matched.** Card numbers, IBANs, Aadhaar, NHS numbers and other identifiers are checked against their check digits, so a random run of digits is not flagged.
-- **Country packs** for the United States, India, the United Kingdom, Germany, France, Spain, Italy, the Netherlands and the EU, plus a plug-in mechanism for more.
+- **Country packs for 32 countries and the EU**: the Americas, Europe, Asia-Pacific, Africa and the Middle East (see [What is detected](#what-is-detected)), plus a plug-in mechanism for more.
 - **Secrets too.** API keys, tokens, private keys and `password=...` assignments.
 - **Several ways in:** strings, nested dicts and lists, a `logging` filter, a command line tool, and pandas.
 
@@ -190,16 +190,41 @@ br = "depii_br:DETECTORS"
 | `it` | `IT_FISCAL_CODE` |
 | `nl` | `NL_BSN` |
 | `eu` | `EU_VAT` |
+| `ca` | `CA_SIN`, `CA_POSTAL_CODE` |
+| `br` | `BR_CPF`, `BR_CNPJ` (including the 2026 alphanumeric format) |
+| `mx` | `MX_CURP`, `MX_RFC` |
+| `cl` | `CL_RUT` |
+| `ar` | `AR_CUIT` |
+| `au` | `AU_TFN`, `AU_ABN`, `AU_MEDICARE` |
+| `nz` | `NZ_IRD`, `NZ_NHI` |
+| `sg` | `SG_NRIC` |
+| `jp` | `JP_MY_NUMBER` |
+| `kr` | `KR_RRN` |
+| `cn` | `CN_RESIDENT_ID` |
+| `pl` | `PL_PESEL`, `PL_NIP`, `PL_ID_CARD` |
+| `se` | `SE_PERSONNUMMER` |
+| `dk` | `DK_CPR` |
+| `fi` | `FI_HETU` |
+| `no` | `NO_FNR` |
+| `be` | `BE_NATIONAL_NUMBER` |
+| `pt` | `PT_NIF` |
+| `ie` | `IE_PPSN` |
+| `at` | `AT_SVNR` |
+| `ch` | `CH_AHV` |
+| `tr` | `TR_TCKN` |
+| `za` | `ZA_ID` |
+| `ae` | `AE_EMIRATES_ID` |
 
 Field-name hints can also produce `PERSON`, `LOCATION`, `PASSPORT`, `BANK_ACCOUNT`, `NATIONAL_ID`, `TAX_ID` and `DRIVING_LICENCE`.
 
 ### Behaviour worth knowing
 
-- **Context words.** Shapes that are too common to trust alone need a nearby word: a bare nine-digit number is an SSN only next to "SSN", a date is a date of birth only next to "born" or "DOB", and so on. `strict=True` removes this requirement.
+- **Context words.** Shapes that are too common to trust alone need a nearby word: a bare nine-digit number is an SSN only next to "SSN", a date is a date of birth only next to "born" or "DOB", and so on. Most national numbers written without their usual separators fall in this group: `52998224725` is a Brazilian CPF only next to "CPF", while `529.982.247-25` is one on its own. Context words include the local language ("PESEL", "fødselsnummer", "マイナンバー", "주민등록번호"). `strict=True` removes this requirement.
 - **Context reaches across sentences.** The window is about 48 characters before a value and 24 after. A second date shortly after "born 3 March 1985" is redacted as well.
 - **URLs.** A URL is redacted when it carries credentials or a query string. A plain link is left alone unless `strict=True`.
 - **Aadhaar.** A bare twelve-digit number starting with 2 to 9 that passes the Verhoeff check is treated as an Aadhaar number. About one in twelve arbitrary twelve-digit numbers does. If your data has no Indian identifiers, leave the `in` pack out.
-- **Labels can be ambiguous.** A number that is valid as two things gets one label. It is redacted either way.
+- **Labels can be ambiguous.** A number that is valid as two things gets one label: a Swedish personnummer can also be a valid Finnish or Danish one, a twelve-digit number can be an Aadhaar or a Japanese My Number. It is redacted either way.
+- **Only the date is checked for some numbers.** Danish CPR numbers since 2007 and Korean RRNs since 2020 have no check digit, and Singapore M-series FINs use an unpublished one, so for these the shape and the date are all there is to go on.
 - **Unicode.** Full-width digits, non-Latin digits, unusual dashes and zero-width characters inside a value are handled. Internationalised email addresses are not.
 - **Not handled:** images, PDFs, audio, and PII that is written out in words ("jane at example dot com").
 
@@ -212,15 +237,16 @@ python benchmarks/throughput.py
 
 `evaluate.py` scores the detectors on a generated corpus: valid identifiers planted in sentences, plus numeric text that holds no PII. On that corpus every listed type currently reaches a recall and precision of 1.0. This shows that the detectors agree with the formats they claim to support. It does not predict recall on real text, which is messier than anything a generator produces. To measure on your own data, label a sample and pass it to `synth.evaluate` in `tests/synth.py`.
 
-Throughput on one development laptop (Python 3.12, all packs loaded), for orientation only:
+Throughput on one development laptop (Python 3.12), for orientation only:
 
-| Input | Speed |
-|---|---|
-| Prose without digits | about 3.6 MB/s |
-| Text dense with identifiers | about 0.3 MB/s |
-| One short log line | 40 to 200 microseconds |
+| Input | All 33 packs | `locales=["us", "in"]` |
+|---|---|---|
+| Prose without digits | about 5.5 MB/s | about 5.5 MB/s |
+| Text dense with identifiers | about 0.2 MB/s | about 0.5 MB/s |
+| One short log line with numbers | about 300 microseconds | about 110 microseconds |
+| One short log line without digits | about 35 microseconds | about 35 microseconds |
 
-Loading fewer packs is the simplest way to go faster.
+Every pack adds detectors that scan text containing digits, so loading only the packs you need is the simplest way to go faster, and it also reduces false positives.
 
 ## Development
 

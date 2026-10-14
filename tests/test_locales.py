@@ -41,6 +41,38 @@ from depii import Redactor, locales, supported_entities
         ("CF RSSMRA80A01H501U", "IT_FISCAL_CODE", "RSSMRA80A01H501U"),
         ("BSN 111222333", "NL_BSN", "111222333"),
         ("VAT DE123456789", "EU_VAT", "DE123456789"),
+        # added in 0.2
+        ("SIN 130 692 544", "CA_SIN", "130 692 544"),
+        ("Ottawa ON K1A 0B1", "CA_POSTAL_CODE", "K1A 0B1"),
+        ("TFN 123 456 782", "AU_TFN", "123 456 782"),
+        ("ABN 51 824 753 556", "AU_ABN", "51 824 753 556"),
+        ("Medicare 2123 45670 1", "AU_MEDICARE", "2123 45670 1"),
+        ("IRD number 49-091-850", "NZ_IRD", "49-091-850"),
+        ("NHI ZZZ0016", "NZ_NHI", "ZZZ0016"),
+        ("CPF 529.982.247-25", "BR_CPF", "529.982.247-25"),
+        ("cpf 52998224725", "BR_CPF", "52998224725"),
+        ("CNPJ 11.222.333/0001-81", "BR_CNPJ", "11.222.333/0001-81"),
+        ("RUT 12.345.678-5", "CL_RUT", "12.345.678-5"),
+        ("CUIT 20-12345678-6", "AR_CUIT", "20-12345678-6"),
+        ("NRIC S1234567D", "SG_NRIC", "S1234567D"),
+        ("マイナンバー 1234 5678 9018", "JP_MY_NUMBER", "1234 5678 9018"),
+        ("RRN 900101-1234567", "KR_RRN", "900101-1234567"),
+        ("身份证 11010519491231002X", "CN_RESIDENT_ID", "11010519491231002X"),
+        ("PESEL 44051401359", "PL_PESEL", "44051401359"),
+        ("NIP 123-456-32-18", "PL_NIP", "123-456-32-18"),
+        ("dowód osobisty ABA300000", "PL_ID_CARD", "ABA300000"),
+        ("personnummer 811228-9874", "SE_PERSONNUMMER", "811228-9874"),
+        ("CPR 010190-1234", "DK_CPR", "010190-1234"),
+        ("HETU 131052-308T", "FI_HETU", "131052-308T"),
+        ("rijksregisternummer 85.07.30-033.28", "BE_NATIONAL_NUMBER", "85.07.30-033.28"),
+        ("NIF 123456789", "PT_NIF", "123456789"),
+        ("PPSN 1234567T", "IE_PPSN", "1234567T"),
+        ("SVNR 1237 010180", "AT_SVNR", "1237 010180"),
+        ("AHV 756.9217.0769.85", "CH_AHV", "756.9217.0769.85"),
+        ("fødselsnummer 01010750160", "NO_FNR", "01010750160"),
+        ("TC kimlik 10000000146", "TR_TCKN", "10000000146"),
+        ("ID 8001015009087", "ZA_ID", "8001015009087"),
+        ("Emirates ID 784-1968-6570305-0", "AE_EMIRATES_ID", "784-1968-6570305-0"),
     ],
 )
 def test_detects(text, entity, value):
@@ -61,13 +93,20 @@ def test_detects(text, entity, value):
         "DNI 12345678A",  # wrong letter
         "root@localhost",
         "jane@example.com",  # an email, not a UPI ID
+        "ref 52998224725",  # an unformatted CPF needs context
+        "PESEL 44051401358",  # bad check digit
+        "ref 10000000146",  # a TC kimlik number needs context
+        "NHI ZZZ0017",  # bad check digit
+        "CPR 320190-1234",  # 32 January
+        "AHV 756.9217.0769.86",  # bad check digit
     ],
 )
 def test_rejects_as_locale_identifier(text):
     locale_entities = {
-        span.entity for span in depii.scan(text) if span.entity[:3] in {
-            "US_", "IN_", "GB_", "DE_", "FR_", "ES_", "IT_", "NL_", "EU_"}
-    }  # fmt: skip
+        span.entity
+        for span in depii.scan(text)
+        if span.entity[:3] in {code.upper() + "_" for code in locales.BUILTIN}
+    }
     assert locale_entities == set()
 
 

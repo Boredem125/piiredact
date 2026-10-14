@@ -64,13 +64,18 @@ class Redactor:
         self._entities = None if entities is None else frozenset(entities)
         self._excluded = frozenset(exclude_entities or ())
         self._detectors = registry.build(locales, self._entities, self._excluded, detectors)
-        # (order, detector, needs a digit, substrings it needs)
+        # (order, detector, needs a digit, substrings it needs, context words it
+        # cannot match without). The last is empty unless the detector requires
+        # context; such a detector is skipped when none of its words occur.
         self._plan = tuple(
             (
                 order,
                 detector,
                 bool(getattr(detector, "needs_digit", False)),
                 tuple(getattr(detector, "needs", ())),
+                tuple(getattr(detector, "context_words", ()))
+                if getattr(detector, "require_context", False)
+                else (),
             )
             for order, detector in enumerate(self._detectors)
         )
@@ -123,12 +128,20 @@ class Redactor:
         normalised, offsets = normalize(text)
 
         has_digit = _has_digit(normalised)
+        lowered: str | None = None
         candidates: list[tuple[float, int, int, int, Span]] = []
-        for order, detector, needs_digit, needs in self._plan:
+        for order, detector, needs_digit, needs, context_words in self._plan:
             if needs_digit and not has_digit:
                 continue
             if needs and not all(part in normalised for part in needs):
                 continue
+            if context_words and not self.strict:
+                if lowered is None:
+                    # U+0307 is left behind when "İ" is lowercased; drop it so
+                    # "KİMLİK" still contains "kimlik".
+                    lowered = normalised.lower().replace("̇", "")
+                if not any(word in lowered for word in context_words):
+                    continue
             open_ended = detector.entity == "*"
             for found in detector.detect(normalised, strict=self.strict):
                 if found.score < self.min_score or found.end <= found.start:

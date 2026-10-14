@@ -13,7 +13,7 @@ STRICT = Redactor(strict=True)
 KEEP_ALL = Redactor(default_operator=Keep())
 
 # Kinds that are detected on shape alone, wherever they appear.
-SELF_EVIDENT = [kind for kind in synth.KINDS if kind.entity not in {"NL_BSN", "GB_NHS_NUMBER"}]
+SELF_EVIDENT = [kind for kind in synth.KINDS if not kind.needs_context]
 
 FILLER = st.sampled_from(
     ["the", "order", "and", "sent", "to", "on", "Monday", "ref", "x", "ok", "über", "—", "注文"]

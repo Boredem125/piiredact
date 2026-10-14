@@ -39,7 +39,8 @@ _phonenumbers: Any = _load_phonenumbers()
 _PHONE_CONTEXT = (
     "phone", "phones", "tel", "tel.", "telephone", "mobile", "mob", "cell", "cellphone",
     "call", "fax", "whatsapp", "contact", "ph", "sms", "dial", "helpline",
-    "telefon", "téléphone", "teléfono", "telefono", "móvil", "handy", "फोन", "फ़ोन", "मोबाइल",
+    "telefon", "téléphone", "teléfono", "telefono", "móvil", "handy", "telefone", "telefoon",
+    "telefonnummer", "puhelin", "电话", "電話", "전화", "फोन", "फ़ोन", "मोबाइल",
 )  # fmt: skip
 
 _DATE_LIKE = re.compile(r"\d{1,4}[-./ ]\d{1,2}[-./ ]\d{1,4}\Z")
@@ -52,18 +53,27 @@ def _digit_count(low: int, high: int) -> Callable[[str], bool]:
     return check
 
 
-def _trim_international(value: str) -> str:
-    """Drop trailing digit groups until the number fits E.164's 15 digits.
+def _trim_to(max_digits: int) -> Callable[[str], str]:
+    """Drop trailing digit groups until at most ``max_digits`` digits remain.
 
-    The pattern allows long groups, so it can run on into a neighbouring
-    number. Cutting back keeps the phone number instead of losing both.
+    Phone patterns allow several groups, so they can run on into a
+    neighbouring number. Cutting back keeps the phone number instead of
+    failing the digit count and losing both.
     """
-    while len(v.digits_of(value)) > 15:
-        cut = max(value.rfind(" "), value.rfind("."), value.rfind("-"))
-        if cut <= 0:
-            return ""
-        value = value[:cut]
-    return value
+
+    def trim(value: str) -> str:
+        while len(v.digits_of(value)) > max_digits:
+            cut = max(value.rfind(" "), value.rfind("."), value.rfind("-"))
+            if cut <= 0:
+                return ""
+            value = value[:cut]
+        return value
+
+    return trim
+
+
+# E.164 allows at most 15 digits.
+_trim_international = _trim_to(15)
 
 
 def _trim_url(value: str) -> str:
@@ -72,6 +82,9 @@ def _trim_url(value: str) -> str:
 
 def _phone_international(value: str) -> bool:
     if not 8 <= len(v.digits_of(value)) <= 15:
+        return False
+    # "+35236450.6" is a signed decimal, not a phone number.
+    if value.count(".") == 1 and not any(sep in value for sep in " -()"):
         return False
     if _phonenumbers is None:
         return True
@@ -202,6 +215,7 @@ DETECTORS: tuple[Any, ...] = (
         _L + r"0\d{1,4}(?:[ .-]\d{2,5}){1,4}" + _R,
         name="phone_trunk",
         score=0.65,
+        trim=_trim_to(11),
         validator=_digit_count(9, 11),
         context=_PHONE_CONTEXT,
         needs_digit=True,
@@ -211,6 +225,7 @@ DETECTORS: tuple[Any, ...] = (
         _L + r"\(\d{2,5}\)[ .-]?\d{3,5}(?:[ .-]\d{2,5}){0,2}" + _R,
         name="phone_parenthesised",
         score=0.7,
+        trim=_trim_to(13),
         validator=_digit_count(7, 13),
         context=_PHONE_CONTEXT,
         needs_digit=True,
@@ -220,6 +235,7 @@ DETECTORS: tuple[Any, ...] = (
         _L + r"(?:\d{2,5}(?:[ -]\d{2,5}){1,3}|\d{8,13})" + _R,
         name="phone_generic",
         score=0.45,
+        trim=_trim_to(13),
         validator=_phone_generic,
         context=_PHONE_CONTEXT,
         require_context=True,

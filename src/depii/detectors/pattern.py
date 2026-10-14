@@ -46,6 +46,7 @@ class PatternDetector:
 
     __slots__ = (
         "_context",
+        "context_words",
         "entity",
         "group",
         "name",
@@ -89,6 +90,8 @@ class PatternDetector:
         self.trim = trim
         self.needs_digit = needs_digit
         self.needs = tuple(needs)
+        # Lowercased, for the engine's cheap "is any context word present" check.
+        self.context_words = tuple(word.lower() for word in context)
         self._context = (
             re.compile(
                 r"(?<![^\W_])(?:" + "|".join(re.escape(word) for word in context) + r")(?![^\W_])",
