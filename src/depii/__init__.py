@@ -17,6 +17,7 @@ from .detectors import Detector, PatternDetector
 from .engine import Redactor
 from .logfilter import PIIFilter
 from .operators import Drop, Hash, Keep, Mask, Operator, Replace, Tokenize, Vault
+from .pseudonym import Pseudonymizer
 from .registry import supported_entities
 from .structured import redact_obj as _redact_obj
 from .types import Result, Span
@@ -32,6 +33,7 @@ __all__ = [
     "Operator",
     "PIIFilter",
     "PatternDetector",
+    "Pseudonymizer",
     "Redactor",
     "Replace",
     "Result",

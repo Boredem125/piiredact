@@ -83,6 +83,30 @@ _CUE = re.compile(
 )
 
 
+def _plausible_verb_object(text: str, words: list[str], end: int) -> bool:
+    """Whether words next to a person verb can be a name rather than code or a term.
+
+    Rules out acronyms ("according to RFC"), code ("call Logger.__init__"),
+    adverbs ("Normally said") and, for a single word, everyday words ("asked May").
+    """
+    if any(len(w) > 1 and w.isupper() for w in words):
+        return False
+    following = text[end : end + 2]
+    if following[:1] == "(" or (
+        following[:1] == "." and (following[1:2].isalnum() or following[1:2] == "_")
+    ):
+        return False
+    if any(w.lower().endswith("ly") for w in words):
+        return False
+    return not (len(words) == 1 and _key(words[0]) in ambiguous())
+
+
+def _sentence_start(text: str, index: int) -> bool:
+    """Whether ``index`` begins a sentence: start of text, a line, or after ". "."""
+    before = text[:index].rstrip(" \t")
+    return not before or before[-1] in ".!?\n"
+
+
 def _starts_word(text: str, index: int) -> bool:
     return index == 0 or not (text[index - 1].isalpha() or text[index - 1].isdigit())
 
@@ -106,6 +130,33 @@ SCORE_CUE = 0.85
 SCORE_PAIR = 0.85
 SCORE_FIRST_NAME = 0.6
 SCORE_SURNAME = 0.5
+SCORE_VERB = 0.6
+
+# Verbs that take a person as their object: "asked Ravan", "emailed Meera".
+# "call", "email", "message" and "contact" are left out: as nouns they precede
+# class names in technical text ("call Logger", "email Parser").
+_VERB_BEFORE_NAME = re.compile(
+    r"(?:asked|told|called|emailed|messaged|texted|met|thanked|informed|helped|hired|"
+    r"paid|invited|contacted|introduced|pinged|cc'd|according to|ask|tell|meet|thank|"
+    r"inform|invite|ping)[ \t]+"
+)
+# Verbs that follow a person as subject: "Ravan said", "Meera replied".
+# Only verbs of speech: "Parser wants" or "Version needed" are not people.
+_VERB_AFTER_NAME = re.compile(
+    r" (?:said|says|asked|asks|told|tells|wrote|writes|replied|replies|emailed|"
+    r"agreed|agrees|confirmed|confirms|mentioned|explained|complained|insisted)\b"
+)
+# Capitalised words before such a verb that are not people.
+_NOT_SUBJECTS = frozenset(
+    """everyone everybody someone somebody nobody anyone management police government
+    company team customer customers client clients user users staff support system it
+    this that he she they we i you who which""".split()
+)
+# The capitalised words right before a verb: "Ravan", "Meera Iyer".
+_TRAILING_NAME = re.compile(
+    r"(?:[A-ZÀ-ÖØ-Þ][^\W\d_]*(?:['’-][^\W\d_]+)*|[A-Z]\.)"
+    r"(?: (?:[A-ZÀ-ÖØ-Þ][^\W\d_]*(?:['’-][^\W\d_]+)*|[A-Z]\.)){0,2}$"
+)
 
 
 @lru_cache(maxsize=4096)
@@ -154,6 +205,8 @@ class NameDetector:
             return  # names are written with capitals, except in caseless scripts
         yield from self._after(text, _TITLE, SCORE_TITLE, "names_title")
         yield from self._after(text, _CUE, SCORE_CUE, "names_greeting")
+        yield from self._after(text, _VERB_BEFORE_NAME, SCORE_VERB, "names_verb")
+        yield from self._before_verbs(text)
         yield from self._from_lists(text, strict)
         for match in _DEVANAGARI_TITLE.finditer(text):
             words = list(_DEVANAGARI_WORD.finditer(text, match.end(), match.end() + 40))[:2]
@@ -174,6 +227,8 @@ class NameDetector:
             words = text[start:end].split()
             if len(words) == 1 and _is_initial(words[0]):
                 continue
+            if pattern is _VERB_BEFORE_NAME and not _plausible_verb_object(text, words, end):
+                continue
             # After a greeting, an unknown word is a name only when the greeting
             # is punctuated like one: "Hi Aanu," or "Regards,\nAanu", but not
             # "Thanks Giving".
@@ -183,6 +238,32 @@ class NameDetector:
                 if not (cue_punctuated or (after and after in ",\n\r!:")):
                     continue
             yield Span(start, end, PERSON, text[start:end], score, name)
+
+    def _before_verbs(self, text: str) -> Iterator[Span]:
+        common = ambiguous()
+        for match in _VERB_AFTER_NAME.finditer(text):
+            head = text[max(0, match.start() - 60) : match.start()]
+            found = _TRAILING_NAME.search(head)
+            if found is None:
+                continue
+            start = match.start() - len(head) + found.start()
+            if not _starts_word(text, start):
+                continue
+            words = found.group().split()
+            # Drop leading words that cannot be part of a name ("Then Ravan said").
+            while words and words[0].lower() in _NOT_NAMES | _NOT_SUBJECTS:
+                start += len(words[0]) + 1
+                words = words[1:]
+            # A capital that opens a sentence proves nothing: "Later Jane wrote".
+            if len(words) > 1 and _sentence_start(text, start) and not self._known(words[:1]):
+                start += len(words[0]) + 1
+                words = words[1:]
+            if not words or (len(words) == 1 and _key(words[0]) in common):
+                continue
+            end = start + len(" ".join(words))
+            if not _plausible_verb_object(text, words, end):
+                continue
+            yield Span(start, end, PERSON, text[start:end], SCORE_VERB, "names_verb")
 
     @staticmethod
     def _known(words: list[str]) -> bool:

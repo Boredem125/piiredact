@@ -98,7 +98,13 @@ for sample in [
 linked = Redactor(default_operator=Tokenize(Vault()))
 print("  " + linked.redact("Jane Doe called. Ms Doe will return; Jane agreed.").text)
 
-section("10. Things it leaves alone")
+section("10. Round trip through an AI: mask, send, map the answer back")
+p = depii.Pseudonymizer()
+print("  sent:    ", p.mask("Aryan asked Ravan to email aryan@example.com"))
+print("  restored:", p.unmask("Person A should wait for Person B's reply."))
+print("  table:   ", p.table, "(kept locally, never sent)")
+
+section("11. Things it leaves alone")
 for clean in [
     "Order 1234567890 shipped on 2024-03-15 at 14:32:07",
     "Upgrade to version 11.2.0, see https://example.com/docs",

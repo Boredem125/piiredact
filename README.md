@@ -100,6 +100,60 @@ Beyond the shape of a value, depii looks at what surrounds it. All of this is on
 
 Change the number with `quasi_threshold`, or turn this off with `quasi_threshold=None`. `contextual=False` turns off all of the above and keeps only the pattern detectors, which is several times faster on short strings such as log lines.
 
+### Sending text to an AI
+
+`Pseudonymizer` replaces personal data with readable labels before text goes to an AI, and puts the real values back into the answer. One per conversation keeps every person on the same label across messages:
+
+```python
+>>> p = depii.Pseudonymizer()
+>>> p.mask("Aryan asked Ravan to email aryan@example.com")
+'Person A asked Person B to email Email A'
+>>> p.unmask("Person A should wait for Person B's reply.")
+"Aryan should wait for Ravan's reply."
+>>> p.table
+{'Person A': 'Aryan', 'Person B': 'Ravan', 'Email A': 'aryan@example.com'}
+
+```
+
+The table stays with you. **Never send it to the AI**: it holds the real values, and sending it would undo the masking. Only the masked text goes out.
+
+With a chat API, mask the whole message list, add `p.instructions` to the system prompt so the model keeps the labels intact, and unmask the reply as it streams:
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+with client.messages.stream(
+    model="claude-opus-5-5",
+    max_tokens=64000,
+    system=p.instructions,
+    messages=p.mask_messages(history),  # text, content blocks, tool calls, tool results
+) as stream:
+    for piece in p.unmask_stream(stream.text_stream):
+        print(piece, end="")
+```
+
+More:
+- **Structured output.** `p.mask_obj(data)` and `p.unmask_obj(reply)` handle JSON and tool-call arguments.
+- **Unknown labels.** `p.unknown_labels(reply)` lists labels the model invented ("Person D").
+- **Saving the table.** `p.save("table.json")` and `Pseudonymizer.load("table.json")` keep it across a restart. The file holds the real values: store it where the original data may live.
+- **A complete example.** `examples/ai_round_trip.py` runs offline, or against Claude with `--claude`.
+
+What the AI does to a label is handled: `PERSON A`, `Person-A`, `[Person A]`, `**Person A**` and `Person A's` all map back, while "a person a day" is left alone. A value already in the table is masked wherever it appears later, in any case, and a lone "Doe" after "Jane Doe" gets Jane Doe's label. Labels that already occur in your text are never reused, and masking text twice changes nothing, so earlier replies can go back into the history as they are.
+
+From the shell, with one table file per conversation:
+
+```bash
+depii mask ticket.txt --table t.json -o masked.txt
+depii unmask reply.txt --table t.json
+```
+
+Limits:
+- Masking is only as good as detection: a name nothing recognises is sent as it is.
+- If the model writes "Person A and B", the lone "B" is not restored; the instructions ask it to write labels out in full.
+- A partial mention is restored as the full name, so "Ms Person A" comes back as "Ms Jane Doe".
+- Labels hide values, not what the text says about them: the model can still infer gender or role from context.
+
 ### Options
 
 | Option | Meaning |

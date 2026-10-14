@@ -4,7 +4,18 @@ This project follows [Semantic Versioning](https://semver.org/). Entity names an
 
 ## 0.3.0 (unreleased)
 
-Contextual detection, on by default and built in: no model and no download.
+Contextual detection, on by default and built in: no model and no download. Reversible pseudonyms for sending text to an AI.
+
+- **`Pseudonymizer`** masks personal data with readable labels ("Person A", "Email B", "Phone A") and maps the AI's answer back. Features:
+  - One table per conversation, with the same label for the same value in every message.
+  - Values already in the table are masked wherever they reappear, in any case.
+  - Tolerant unmasking (`PERSON A`, `Person-A`, `[Person A]`, `**Person A**`, possessives).
+  - Helpers for chat message lists (content blocks, tool calls, tool results), JSON and streamed replies.
+  - Detection of labels the AI invented.
+  - `instructions` for the system prompt.
+  - JSON save and load.
+- `depii mask` and `depii unmask` commands share a table file.
+- Names are also found next to person verbs: "asked Ravan", "Ravan said".
 
 - **Labels and tables.** A value is redacted because of its label, whatever it looks like: `Email: jane at example dot com`, `Name: ...`, `my name is ...`, `I live at ...`, JSON keys and `key=value` pairs (`"fullName": ...`, `user_email=...`), and columns of Markdown and tab-separated tables. Compound labels such as "file name" or "host name" are ignored.
 - **Person names** from titles (`Dr.`, `Mrs`, `Shri`, `श्री`), greetings and sign-offs, and built-in lists of common given and family names from many cultures. Names that are also everyday words (Will, May, Grace) need extra evidence.

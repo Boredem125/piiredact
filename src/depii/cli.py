@@ -17,11 +17,13 @@ import sys
 from collections import Counter
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any, TextIO
 
 from . import __version__, locales, registry
 from .engine import Redactor
 from .operators import Drop, Hash, Mask, Operator, Replace
+from .pseudonym import Pseudonymizer
 from .stream import chunks, redact_stream
 from .structured import entity_for_key
 
@@ -187,6 +189,33 @@ def _cmd_scan(args: argparse.Namespace) -> int:
     return EXIT_FOUND if found else EXIT_OK
 
 
+def _cmd_mask(args: argparse.Namespace) -> int:
+    redactor = _redactor(args)
+    table = Path(args.table)
+    pseudonymizer = (
+        Pseudonymizer.load(table, redactor) if table.exists() else Pseudonymizer(redactor)
+    )
+    with _reader(args.input, args.encoding) as source, _writer(args.output, args.encoding) as sink:
+        for chunk in chunks(source):
+            sink.write(pseudonymizer.mask(chunk))
+    pseudonymizer.save(table)
+    return EXIT_OK
+
+
+def _cmd_unmask(args: argparse.Namespace) -> int:
+    pseudonymizer = Pseudonymizer.load(args.table)
+    with _reader(args.input, args.encoding) as source, _writer(args.output, args.encoding) as sink:
+        unknown: list[str] = []
+        for chunk in chunks(source):
+            sink.write(pseudonymizer.unmask(chunk))
+            unknown += [
+                label for label in pseudonymizer.unknown_labels(chunk) if label not in unknown
+            ]
+    if unknown:
+        print(f"depii: labels not in the table: {', '.join(unknown)}", file=sys.stderr)
+    return EXIT_OK
+
+
 def _cmd_entities(args: argparse.Namespace) -> int:
     for name in registry.supported_entities(_split(args.locales)):
         print(name)
@@ -240,6 +269,22 @@ def _parser() -> argparse.ArgumentParser:
     entities = commands.add_parser("entities", help="list supported entity types")
     entities.add_argument("--locales", help="comma-separated country packs")
     entities.set_defaults(run=_cmd_entities)
+
+    table_help = "JSON table of labels and real values; keep it private, never send it on"
+    mask = commands.add_parser(
+        "mask", help="replace PII with labels such as Person A, recording them in a table"
+    )
+    common(mask)
+    mask.add_argument("--table", required=True, help=table_help + " (created if missing)")
+    mask.add_argument("-o", "--output", help="file to write (default: stdout)")
+    mask.set_defaults(run=_cmd_mask)
+
+    unmask = commands.add_parser("unmask", help="put the real values back in place of labels")
+    unmask.add_argument("input", nargs="?", default="-", help="file to read, or - for stdin")
+    unmask.add_argument("--table", required=True, help=table_help)
+    unmask.add_argument("-o", "--output", help="file to write (default: stdout)")
+    unmask.add_argument("--encoding", default="utf-8", help="default: utf-8")
+    unmask.set_defaults(run=_cmd_unmask)
     return parser
 
 
