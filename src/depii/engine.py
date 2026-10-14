@@ -19,6 +19,10 @@ STRICT_MIN_SCORE = 0.3
 _DIGITS = "0123456789"
 
 
+def _from_labels(span: Span) -> bool:
+    return span.detector.startswith("labels")
+
+
 def _has_digit(text: str) -> bool:
     # Ten substring searches beat one regex scan: each runs at memchr speed.
     # Non-ASCII digits were folded to ASCII by normalize().
@@ -91,9 +95,13 @@ class Redactor:
         self._warn_unknown_entities()
 
     def _warn_unknown_entities(self) -> None:
-        if any(detector.entity == "*" for detector in self._detectors):
-            return  # open-ended detectors can emit anything
         known = set(registry.supported_entities()) | {d.entity for d in self._detectors}
+        for detector in self._detectors:
+            if detector.entity == "*":
+                declared = getattr(detector, "entities", None)
+                if declared is None:
+                    return  # an open-ended detector that can emit anything
+                known |= set(declared)
         # Imported here: structured imports this module.
         from .structured import HINT_ENTITIES
 
@@ -154,6 +162,15 @@ class Redactor:
                     continue
                 span = Span(start, end, found.entity, value, found.score, found.detector)
                 candidates.append((-span.score, start - end, order, start, span))
+
+        # A label says "this is a phone number"; a detector that matched exactly
+        # the same text knows which kind. Keep the more specific label.
+        specific = {(c[4].start, c[4].end) for c in candidates if not _from_labels(c[4])}
+        if specific:
+            candidates = [
+                c for c in candidates
+                if not (_from_labels(c[4]) and (c[4].start, c[4].end) in specific)
+            ]  # fmt: skip
 
         # Best score first, then longest, then detector order, then position.
         candidates.sort(key=lambda item: item[:4])

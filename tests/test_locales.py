@@ -145,4 +145,4 @@ def test_supported_entities():
     names = supported_entities()
     assert {"EMAIL", "US_SSN", "IN_AADHAAR", "GB_NINO", "SECRET"} <= set(names)
     assert names == sorted(names)
-    assert "IN_AADHAAR" not in supported_entities(["us"])
+    assert "IN_GSTIN" not in supported_entities(["us"])

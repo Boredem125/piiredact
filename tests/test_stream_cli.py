@@ -134,7 +134,7 @@ class TestCli:
     def test_entities_command(self, run):
         code, _, out, _ = run("entities", "--locales", "us")
         assert code == EXIT_OK
-        assert "US_SSN" in out.split() and "IN_AADHAAR" not in out.split()
+        assert "US_SSN" in out.split() and "IN_GSTIN" not in out.split()
 
     def test_errors_return_2(self, run, tmp_path):
         assert run("scan", str(tmp_path / "missing.txt"))[0] == EXIT_ERROR

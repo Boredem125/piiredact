@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from . import locales as _locales
 from .detectors.base import Detector
 from .detectors.global_ import DETECTORS as _GLOBAL
+from .detectors.labels import DETECTORS as _LABELS
 from .detectors.secrets import DETECTORS as _SECRETS
 
 
@@ -22,7 +23,7 @@ def build(
     entity types declare ``entity = "*"`` and are filtered per span later.
     """
     codes = _locales.available() if locales is None else list(locales)
-    detectors: list[Detector] = [*_GLOBAL, *_SECRETS]
+    detectors: list[Detector] = [*_GLOBAL, *_SECRETS, *_LABELS]
     for code in codes:
         detectors.extend(_locales.load(code))
     detectors.extend(extra)
@@ -39,4 +40,10 @@ def build(
 
 def supported_entities(locales: Iterable[str] | None = None) -> list[str]:
     """Entity types the built-in and installed detectors can emit."""
-    return sorted({d.entity for d in build(locales) if d.entity != "*"})
+    names: set[str] = set()
+    for detector in build(locales):
+        if detector.entity == "*":
+            names |= set(getattr(detector, "entities", ()))
+        else:
+            names.add(detector.entity)
+    return sorted(names)
