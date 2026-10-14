@@ -2,7 +2,7 @@
 
 This project follows [Semantic Versioning](https://semver.org/). Entity names and the fields of `Span` and `Result` are part of the public interface.
 
-## 0.2.0 (unreleased)
+## 0.2.0 (2026-10-14)
 
 - 24 new country packs, 32 new entity types, each with its check-digit or date validation and context words in the local language:
   - Americas: `ca` (`CA_SIN`, `CA_POSTAL_CODE`), `br` (`BR_CPF`, `BR_CNPJ`, including the alphanumeric CNPJ issued from July 2026), `mx` (`MX_CURP`, `MX_RFC`), `cl` (`CL_RUT`), `ar` (`AR_CUIT`).
