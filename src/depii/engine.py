@@ -8,9 +8,12 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from . import registry
+from .context import propagate
 from .detectors.base import Detector
 from .normalize import normalize, to_original
 from .operators import Keep, Operator, Replace
+from .quasi import DEFAULT_THRESHOLD as DEFAULT_QUASI_THRESHOLD
+from .quasi import QUASI_ENTITIES, combine
 from .types import Result, Span
 
 DEFAULT_MIN_SCORE = 0.5
@@ -21,6 +24,35 @@ _DIGITS = "0123456789"
 
 def _from_labels(span: Span) -> bool:
     return span.detector.startswith("labels")
+
+
+_Candidate = tuple[float, int, int, int, Span]
+
+
+def _labels_cover_their_parts(candidates: list[_Candidate]) -> list[_Candidate]:
+    """Let a labelled value outrank the smaller matches it contains.
+
+    "Address: Flat 4, 12 High St, Leeds LS1 4AB" is one address. Without this,
+    a street pattern boosted by the word "Address" would win, and the postcode
+    would come out as a separate placeholder.
+    """
+    labelled = [c for c in candidates if _from_labels(c[4])]
+    if not labelled:
+        return candidates
+    others = sorted((c for c in candidates if not _from_labels(c[4])), key=lambda c: c[4].start)
+    starts = [c[4].start for c in others]
+    result = [c for c in candidates if not _from_labels(c[4])]
+    for item in labelled:
+        span = item[4]
+        best = span.score
+        index = bisect_right(starts, span.start - 1)
+        while index < len(others) and others[index][4].start < span.end:
+            inner = others[index][4]
+            if inner.end <= span.end:
+                best = max(best, inner.score)
+            index += 1
+        result.append((-best - 1e-6, *item[1:]) if best > span.score else item)
+    return result
 
 
 def _has_digit(text: str) -> bool:
@@ -48,6 +80,19 @@ class Redactor:
     ``detectors``        extra detectors, e.g. ``SpacyDetector()``.
     ``allow``            exact values never to redact (case-insensitive),
                          such as your own support address.
+    ``contextual``       use context beyond the value itself: labels
+                         ("Email: ..."), names, addresses, propagation and
+                         identifying combinations. ``False`` keeps only the
+                         pattern detectors, which is several times faster on
+                         short strings such as log lines.
+    ``propagate``        also redact other occurrences of every value found,
+                         and the parts of a detected name where they appear
+                         alone ("Ms Doe" after "Jane Doe"). Follows
+                         ``contextual`` unless set.
+    ``quasi_threshold``  redact age, gender, occupation, employer and city when
+                         at least this many kinds (counting postcodes, birth
+                         dates and addresses) occur together in a few
+                         sentences. Default 3; ``None`` turns it off.
     """
 
     def __init__(
@@ -62,13 +107,24 @@ class Redactor:
         strict: bool = False,
         detectors: Iterable[Detector] = (),
         allow: Iterable[str] = (),
+        contextual: bool = True,
+        propagate: bool | None = None,
+        quasi_threshold: int | None = DEFAULT_QUASI_THRESHOLD,
     ) -> None:
         if not 0.0 <= min_score <= 1.0:
             raise ValueError("min_score must be between 0 and 1")
+        self.contextual = contextual
+        self.propagate = contextual if propagate is None else propagate
+        if quasi_threshold is not None and quasi_threshold < 2:
+            raise ValueError("quasi_threshold must be at least 2, or None to turn it off")
+        self.quasi_threshold = quasi_threshold if contextual else None
         self._entities = None if entities is None else frozenset(entities)
         self._excluded = frozenset(exclude_entities or ())
-        self._detectors = registry.build(locales, self._entities, self._excluded, detectors)
-        # (order, detector, needs a digit, substrings it needs, context words it
+        self._detectors = registry.build(
+            locales, self._entities, self._excluded, detectors, contextual=contextual
+        )
+        # (order, detector, needs a digit, substrings it needs, substrings it needs
+        # one of, context words it
         # cannot match without). The last is empty unless the detector requires
         # context; such a detector is skipped when none of its words occur.
         self._plan = tuple(
@@ -77,6 +133,7 @@ class Redactor:
                 detector,
                 bool(getattr(detector, "needs_digit", False)),
                 tuple(getattr(detector, "needs", ())),
+                tuple(getattr(detector, "needs_any", ())),
                 tuple(getattr(detector, "context_words", ()))
                 if getattr(detector, "require_context", False)
                 else (),
@@ -105,7 +162,7 @@ class Redactor:
         # Imported here: structured imports this module.
         from .structured import HINT_ENTITIES
 
-        known |= HINT_ENTITIES
+        known |= HINT_ENTITIES | QUASI_ENTITIES
         named = {*self._policy, *(self._entities or ()), *self._excluded}
         unknown = sorted(named - known)
         if unknown:
@@ -138,10 +195,12 @@ class Redactor:
         has_digit = _has_digit(normalised)
         lowered: str | None = None
         candidates: list[tuple[float, int, int, int, Span]] = []
-        for order, detector, needs_digit, needs, context_words in self._plan:
+        for order, detector, needs_digit, needs, needs_any, context_words in self._plan:
             if needs_digit and not has_digit:
                 continue
             if needs and not all(part in normalised for part in needs):
+                continue
+            if needs_any and not any(part in normalised for part in needs_any):
                 continue
             if context_words and not self.strict:
                 if lowered is None:
@@ -171,6 +230,7 @@ class Redactor:
                 c for c in candidates
                 if not (_from_labels(c[4]) and (c[4].start, c[4].end) in specific)
             ]  # fmt: skip
+            candidates = _labels_cover_their_parts(candidates)
 
         # Best score first, then longest, then detector order, then position.
         candidates.sort(key=lambda item: item[:4])
@@ -184,6 +244,10 @@ class Redactor:
                 continue
             starts.insert(index, span.start)
             chosen.insert(index, span)
+        if self.propagate:
+            chosen = propagate(text, chosen)
+        if self.quasi_threshold:
+            chosen = combine(text, chosen, self.quasi_threshold, self._wanted)
         return chosen
 
     def redact(self, text: str) -> Result:
@@ -196,7 +260,10 @@ class Redactor:
             if isinstance(operator, Keep):
                 continue
             pieces.append(text[position : span.start])
-            pieces.append(operator.apply(span.text, span.entity))
+            # Operators that make equal values look equal (Tokenize, Hash) get
+            # the linked value, so "Doe" and "Jane Doe" share a token.
+            linked = span.link if span.link and getattr(operator, "links", False) else span.text
+            pieces.append(operator.apply(linked, span.entity))
             position = span.end
             applied.append(span)
         if not applied:

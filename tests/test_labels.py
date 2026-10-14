@@ -86,7 +86,7 @@ def test_table_without_known_columns_is_left_alone():
 
 
 def test_shell_pipes_are_not_tables():
-    text = "cat users.txt | grep Smith | sort\n"
+    text = "cat users.txt | grep error | sort\n"
     assert depii.redact(text) == text
 
 

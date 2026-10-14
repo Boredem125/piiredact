@@ -64,6 +64,9 @@ class Hash:
     Keep the key secret and out of the redacted data set.
     """
 
+    # Receive a span's linked value when it has one; see Span.link.
+    links = True
+
     def __init__(
         self,
         key: str | bytes,
@@ -132,6 +135,9 @@ class Vault:
 
 class Tokenize:
     """Replace each distinct value with a numbered token that a vault can reverse."""
+
+    # Receive a span's linked value when it has one; see Span.link.
+    links = True
 
     def __init__(self, vault: Vault | None = None) -> None:
         self.vault = vault if vault is not None else Vault()

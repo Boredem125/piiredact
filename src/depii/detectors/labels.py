@@ -113,21 +113,27 @@ _IDENTIFIER_ENTITIES = frozenset(
     }
 )  # fmt: skip
 
+_PHONE_CHARS = re.compile(r"[ \"']*[+(]?[0-9][0-9 ().+/-]*")
 LABEL_SCORE = 0.97
 LABEL_SCORE_WEAK = 0.85
 
 # "I live at ...", "she resides in ...": a place without a "label: value" shape.
 _LIVES_AT = re.compile(
-    r"(?<![^\W\d_])(?:i|we|they|he|she)?\s?(?:live|lives|living|reside|resides|residing|"
-    r"stay|stays|staying)\s+(?:at|in|on)\s+",
+    r"(?:live|lives|living|reside|resides|residing|stay|stays|staying)"
+    r"(?<![^\W\d_]live)(?<![^\W\d_]lives)(?<![^\W\d_]living)"  # not "outlive", "delivering"
+    r"\s+(?:at|in|on)\s+",
     re.IGNORECASE,
 )
 
+# Each alternative starts with the separator itself, not with the spaces
+# around it, so the regex engine can skip straight to candidate characters.
 _SEPARATOR = re.compile(
-    r"\s{0,3}(?P<strong>[:=：])\s{0,3}|\s{1,3}(?P<dash>-{1,2}>?|[–—])\s{1,3}"
-    r"|\s{1,3}(?P<weak>is|was)\s{1,3}(?:an?\s+)?",
-    re.IGNORECASE,
+    r"(?P<strong>[:=：])"
+    r"|(?P<dash>[-–—](?<=\s[-–—])-?>?)(?=\s)"
+    r"|(?P<weak>[iIwW](?<=\s[iIwW])(?:[sS]|[aA][sS]))(?=\s)"
 )
+# Spacing, and after "is" an article, between a separator and its value.
+_GAP = re.compile(r"[ \t]{0,3}(?:(?<=\s)(?:an?|An?)[ \t]+)?")
 _NULLISH = frozenset(
     {"", "-", "--", "n/a", "na", "none", "null", "nil", "unknown", "not provided",
      "not available", "tbd", "redacted", "xxx", "***", "?", "same as above", "nan"}
@@ -227,7 +233,7 @@ def _name_run(value: str, *, require_capital: bool) -> int:
     """
     end = 0
     for count, match in enumerate(re.finditer(r"\S+", value)):
-        word = match.group().rstrip(",;\"`)]}")
+        word = match.group().rstrip(',;"`)]}')
         core = word.strip(".'’-")
         if not core or not all(ch.isalpha() or ch in ".'’-" for ch in word):
             break
@@ -242,6 +248,22 @@ def _name_run(value: str, *, require_capital: bool) -> int:
         if count == 4:
             break
     return end
+
+
+def _identifier(raw: str, *, single_token: bool) -> str:
+    """The identifier at the start of ``raw``: "078051120 on file" -> "078051120".
+
+    Groups are kept together when every group holds a digit or is a short
+    capital code, as in "1234 5678 9012" or "AB 12 34 56 C".
+    """
+    end = 0
+    for count, match in enumerate(re.finditer(r"\S+", raw)):
+        group = match.group().rstrip(",;")
+        if count and (single_token or not (any(ch.isdigit() for ch in group)
+                                           or (len(group) <= 2 and group.isupper()))):  # fmt: skip
+            break
+        end = match.start() + len(group)
+    return raw[:end]
 
 
 def _value_after(text: str, start: int, entity: str, *, weak: bool) -> tuple[int, int]:
@@ -268,6 +290,12 @@ def _value_after(text: str, start: int, entity: str, *, weak: bool) -> tuple[int
     if entity == t.PERSON:
         leading = len(raw) - len(raw.lstrip(" \"'`"))
         raw = raw[: leading + _name_run(raw[leading:], require_capital=weak)]
+    elif entity == t.PHONE:
+        # "98765-43210 (after 6pm)": the number ends where phone characters do.
+        number = _PHONE_CHARS.match(raw)
+        raw = number.group().rstrip(" (") if number else ""
+    elif entity in _IDENTIFIER_ENTITIES:
+        raw = _identifier(raw, single_token=entity in (t.SECRET, USERNAME))
     elif entity == t.LOCATION and weak:
         clause = _CLAUSE.search(raw)
         if clause is not None:
@@ -277,6 +305,51 @@ def _value_after(text: str, start: int, entity: str, *, weak: bool) -> tuple[int
         return start, start
     offset = raw.find(stripped)
     return start + offset, start + offset + len(stripped)
+
+
+_IP_LIKE = re.compile(r"\d{1,3}(?:\.\d{1,3}){3}|[0-9A-Fa-f]{0,4}:[0-9A-Fa-f]{0,4}:")
+
+# Variable names that a username label is often assigned from in code.
+_VARIABLE_NAMES = frozenset({"name", "user", "username", "user_name", "login", "handle", "value"})
+
+_UNIT_WORDS = frozenset(
+    {"flat", "apt", "apartment", "unit", "suite", "house", "h.no", "plot", "door", "#", "no",
+     "room", "block", "building", "bldg", "p.o", "po", "c/o"}
+)  # fmt: skip
+
+
+# Names of secrets: "pwd=pwd" passes a variable along rather than a password.
+_SECRET_WORDS = frozenset(
+    {"pwd", "password", "passwd", "pass", "passphrase", "secret", "token", "key", "apikey",
+     "api_key", "otp", "cvv", "cvc", "credentials", "auth"}
+)  # fmt: skip
+
+
+def plausible_secret(value: str) -> bool:
+    """Whether a value assigned to a secret-looking key could be the secret itself."""
+    core = value.rstrip("):,;")
+    lowered = core.lower()
+    if lowered in _CODE_LITERALS or lowered in _SECRET_WORDS:
+        return False
+    return not lowered.startswith(_CODE_PREFIXES) and "(" not in core
+
+
+def _comparison(text: str, index: int) -> bool:
+    """Whether the ":" or "=" at ``index`` belongs to "==", "!=", "<=", ":=" or "::"."""
+    before = text[index - 1 : index]
+    after = text[index + 1 : index + 2]
+    return after in ("=", ":") or before in ("=", "!", "<", ">", ":")
+
+
+def _camel_case(value: str) -> bool:
+    """ "IPv4Network" or "MyClass", but not "McDonald", "O'Brien" or "DeSouza"."""
+    for word in value.split():
+        for index in range(2, len(word)):
+            if word[index].isupper() and word[index - 1].islower():
+                prefix = word[:index]
+                if prefix not in ("Mc", "Mac", "De", "Di", "Le", "La", "Van", "Von"):
+                    return True
+    return False
 
 
 def _looks_like_name(value: str, *, require_capital: bool) -> bool:
@@ -293,33 +366,74 @@ def _looks_like_name(value: str, *, require_capital: bool) -> bool:
     return any(word[0].isupper() or not word[0].isascii() for word in words)
 
 
-def _accept(entity: str, value: str, weak: bool) -> bool:
+# Values that are program code rather than data: "name = value", "pwd=None",
+# "addr = parse(addr)", "ip = IPv4Network".
+_CODE_LITERALS = frozenset({"none", "null", "nil", "true", "false", "undefined", "nan", "self"})
+_CODE_PREFIXES = ("self.", "this.", "os.", "cls.", "$", "%(", "{{", "${", "<%")
+# "@", or an "at" marker followed by a dot or "dot": "jane at example dot com",
+# "raj [at] example.in". "accepted for at least" has no dot after the "at".
+_OBFUSCATED_EMAIL = re.compile(
+    r"@|(?:\bat\b|\[at\]|\(at\)|\{at\}).*?(?:\.\w|\bdot\b|\[dot\]|\(dot\))"
+)
+
+
+def _looks_like_code(value: str, following: str) -> bool:
+    lowered = value.lower()
+    if lowered in _CODE_LITERALS or lowered.startswith(_CODE_PREFIXES):
+        return True
+    if following[:1] in ("(", "[") or (" " not in value and any(ch in value for ch in "()[]{}")):
+        return True  # a call or an index: "parse(addr)", "addr[0]"
+    # A bare lower_snake identifier with no digit is a variable, not a value.
+    return bool(re.fullmatch(r"[a-z_][a-z_]*(?:\.[a-z_]+)*", value))
+
+
+def _accept(entity: str, value: str, weak: bool, following: str = "") -> bool:
     lowered = value.lower()
     if lowered in _NULLISH or _PLACEHOLDER.search(value):
         return False
     if not any(ch.isalnum() for ch in value):
         return False
+    if entity == USERNAME:
+        # Usernames look like identifiers; only rule out obvious variables.
+        if lowered in _CODE_LITERALS or lowered in _VARIABLE_NAMES or following[:1] in ("(", "["):
+            return False
+    elif _looks_like_code(value, following) and entity != t.SECRET:
+        return False
     digits = sum(ch.isdigit() for ch in value)
     if entity == t.PERSON:
-        return _looks_like_name(value, require_capital=weak)
+        # Names are written with capitals (in scripts that have them), and are
+        # not CamelCase identifiers such as "IPv4Network".
+        # A lone lowercase word was already ruled out as a variable above, so a
+        # lowercase name is only accepted with a space in it: "john smith".
+        return _looks_like_name(value, require_capital=weak) and not _camel_case(value)
     if entity == t.ORGANIZATION:
         return value[0].isupper() or not value[0].isascii() or value[0].isdigit()
     if entity == t.LOCATION:
-        if weak:
-            return any(ch.isalpha() for ch in value) and (digits > 0 or value[0].isupper())
-        return len(value) >= 3 and any(ch.isalpha() for ch in value)
+        # An address starts with a house or flat number, or lists its parts
+        # with commas: "12 High St", "Flat 4, ...", "Hauptstraße 5, Berlin".
+        # "address: An integer representation of an IPv4 address" does neither.
+        if digits == 0 or not any(ch.isalpha() for ch in value) or "=" in value:
+            return False
+        first = value.split()[0].rstrip(",.").lower()
+        if first in _CODE_LITERALS:
+            return False
+        starts_like_address = first[0].isdigit() or first in _UNIT_WORDS
+        # After "is", only a value that starts like an address will do.
+        return starts_like_address or ("," in value and not weak)
     if entity == t.PHONE:
         return digits >= 5
     if entity == t.DATE_OF_BIRTH:
         return digits >= 2 or any(month in lowered for month in _MONTHS)
     if entity == t.EMAIL:
-        if weak:
-            return "@" in value or " at " in f" {lowered} "
-        return True
+        return _OBFUSCATED_EMAIL.search(lowered) is not None
+    if entity == t.IP_ADDRESS:
+        return _IP_LIKE.search(value) is not None
     if entity in _IDENTIFIER_ENTITIES:
         token_ok = len(value.split()) <= 4 and len(value) >= 3
-        if entity == t.SECRET and lowered.startswith(("bearer ", "basic ")):
+        if entity == t.SECRET and lowered.split(" ")[0] in ("bearer", "basic"):
             return False  # the authorization_header detector keeps the scheme visible
+        if entity == t.SECRET and not plausible_secret(value):
+            return False
         if entity in (t.SECRET, USERNAME):
             return token_ok and not weak
         return token_ok and digits >= 2
@@ -362,20 +476,28 @@ class LabelDetector:
 
     def _prose(self, text: str) -> Iterator[Span]:
         for match in _SEPARATOR.finditer(text):
+            if match.group("strong") and _comparison(text, match.start()):
+                continue
             entity, found = _label_before(text, match.start())
             if not found or entity is None:
                 continue
             weak = match.group("weak") is not None
-            yield from self._value(text, match.end(), entity, weak)
+            gap = _GAP.match(text, match.end())
+            start = gap.end() if weak and gap else match.end()
+            yield from self._value(text, start, entity, weak)
         for match in _LIVES_AT.finditer(text):
-            yield from self._value(text, match.end(), t.LOCATION, weak=True)
+            yield from self._value(text, match.end(), t.LOCATION, weak=True, place=True)
 
-    def _value(self, text: str, start: int, entity: str, weak: bool) -> Iterator[Span]:
+    def _value(
+        self, text: str, start: int, entity: str, weak: bool, place: bool = False
+    ) -> Iterator[Span]:
         start, end = _value_after(text, start, entity, weak=weak)
         if end <= start:
             return
         value = text[start:end]
-        if _accept(entity, value, weak):
+        # After "lives in", a capitalised place name is enough: "lives in Leeds".
+        named_place = place and value[0].isupper() and not _camel_case(value)
+        if named_place or _accept(entity, value, weak, text[end : end + 1]):
             # A labelled value outranks smaller matches inside it, such as the
             # postcode within "Address: 12 High St, Leeds LS1 4AB".
             yield Span(
@@ -407,7 +529,11 @@ class LabelDetector:
                 row_start, row_line = lines[row]
                 for (a, b), entity in zip(_cells(row_line, row_start, sep), columns, strict=False):
                     value = text[a:b]
-                    if entity is not None and b > a and _accept(entity, value, weak=False):
+                    if (
+                        entity is not None
+                        and b > a
+                        and _accept(entity, value, False, text[b : b + 1])
+                    ):
                         yield Span(a, b, entity, value, LABEL_SCORE, "labels_table")
                 row += 1
             index = row

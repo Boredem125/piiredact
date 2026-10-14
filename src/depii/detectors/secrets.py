@@ -10,6 +10,7 @@ import re
 from typing import Any
 
 from ..types import SECRET
+from .labels import plausible_secret
 from .pattern import PatternDetector
 
 _B = r"(?<![A-Za-z0-9_])(?<![A-Za-z0-9_]-)"
@@ -21,6 +22,7 @@ DETECTORS: tuple[Any, ...] = (
         _B + r"(?:AKIA|ASIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA)[A-Z0-9]{16}" + _E,
         name="aws_access_key_id",
         score=0.95,
+        needs_any=("AKIA", "ASIA", "AGPA", "AIDA", "AROA", "AIPA", "ANPA", "ANVA"),
     ),
     PatternDetector(
         SECRET,
@@ -78,6 +80,7 @@ DETECTORS: tuple[Any, ...] = (
         r"(?<![A-Za-z0-9])(?:bearer|basic) ([A-Za-z0-9._~+/=-]{16,4096})",
         name="authorization_header",
         score=0.9,
+        needs_any=("earer", "EARER", "asic", "ASIC"),
         group=1,
         flags=re.IGNORECASE,
     ),
@@ -91,6 +94,8 @@ DETECTORS: tuple[Any, ...] = (
         r"[\"']?\s{0,4}[:=]\s{0,4}[\"']?([^\s\"',;&]{4,512})",
         name="secret_assignment",
         score=0.8,
+        validator=plausible_secret,
+        needs_any=(":", "="),
         group=1,
         flags=re.IGNORECASE,
     ),

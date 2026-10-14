@@ -87,7 +87,18 @@ loose = "ref 078051120"
 print("  default:", depii.redact(loose))
 print("  strict: ", depii.redact(loose, strict=True))
 
-section("9. Things it leaves alone")
+section("9. Context: labels, names, addresses, the same person, combinations")
+for sample in [
+    "Email: jane at example dot com | Mobile: 98765-43210 (after 6pm)",
+    "My name is Priya Sharma and I live at 42 MG Road, Pune.",
+    "Dear Aanu, your parcel for 221B Baker Street, London has shipped. Regards, Kwame",
+    "The patient is a 42-year-old woman from Pune who works as a nurse.",
+]:
+    print("  " + depii.redact(sample))
+linked = Redactor(default_operator=Tokenize(Vault()))
+print("  " + linked.redact("Jane Doe called. Ms Doe will return; Jane agreed.").text)
+
+section("10. Things it leaves alone")
 for clean in [
     "Order 1234567890 shipped on 2024-03-15 at 14:32:07",
     "Upgrade to version 11.2.0, see https://example.com/docs",

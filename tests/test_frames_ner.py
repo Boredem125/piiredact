@@ -94,7 +94,8 @@ class TestNer:
 
     def test_score_threshold(self):
         weak = SpacyDetector(nlp=FakeNlp(), score=0.2)
-        assert "Jane Smith" in Redactor(detectors=[weak]).redact(self.text).text
+        spans = Redactor(detectors=[weak]).scan(self.text)
+        assert all(span.detector != "spacy" for span in spans)
 
     def test_offsets_survive_normalisation(self):
         redactor = Redactor(detectors=[SpacyDetector(nlp=FakeNlp())])

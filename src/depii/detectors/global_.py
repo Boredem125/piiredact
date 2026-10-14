@@ -317,6 +317,7 @@ DETECTORS: tuple[Any, ...] = (
         t.MAC_ADDRESS,
         r"(?<!\w)(?<!\w[:-])[0-9A-Fa-f]{2}([:-])[0-9A-Fa-f]{2}(?:\1[0-9A-Fa-f]{2}){4}(?!\w)(?![:-]\w)",
         score=0.85,
+        needs_any=(":", "-"),
     ),
     PatternDetector(
         t.URL,

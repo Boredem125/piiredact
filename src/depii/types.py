@@ -44,6 +44,10 @@ class Span:
     text: str = field(repr=False)
     score: float
     detector: str = ""
+    # The fuller value this span refers to, when known: "Doe" found on its own
+    # after "Jane Doe" links to "Jane Doe", so Tokenize and Hash give both the
+    # same output. Empty when the span stands for itself.
+    link: str = field(default="", repr=False)
 
     def overlaps(self, other: Span) -> bool:
         return self.start < other.end and other.start < self.end

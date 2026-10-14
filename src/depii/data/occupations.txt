@@ -1,0 +1,137 @@
+# Occupations and job titles, one per line, lowercase.
+# An occupation alone is not personal data; it counts towards an identifying
+# combination (age + city + occupation, for example).
+accountant
+actor
+actress
+administrator
+analyst
+architect
+artist
+attorney
+auditor
+author
+baker
+banker
+barber
+barista
+bartender
+biologist
+bus driver
+butcher
+carpenter
+cashier
+ceo
+cfo
+chef
+chemist
+civil engineer
+cleaner
+clerk
+coach
+consultant
+cook
+coo
+counsellor
+counselor
+cto
+data scientist
+dentist
+designer
+developer
+dietitian
+director
+doctor
+driver
+economist
+editor
+electrician
+engineer
+entrepreneur
+farmer
+firefighter
+fisherman
+flight attendant
+gardener
+general manager
+geologist
+graphic designer
+hairdresser
+head teacher
+headmaster
+homemaker
+housewife
+investment banker
+janitor
+journalist
+judge
+labourer
+laborer
+lawyer
+lecturer
+librarian
+machinist
+manager
+mechanic
+midwife
+miner
+musician
+nurse
+nutritionist
+optician
+painter
+paramedic
+pharmacist
+photographer
+physician
+physicist
+physiotherapist
+pilot
+plumber
+police officer
+policeman
+policewoman
+politician
+postman
+priest
+principal
+product manager
+professor
+programmer
+project manager
+psychiatrist
+psychologist
+radiologist
+real estate agent
+receptionist
+researcher
+retired
+sales executive
+salesman
+salesperson
+scientist
+secretary
+security guard
+shopkeeper
+social worker
+software engineer
+soldier
+student
+surgeon
+surveyor
+tailor
+taxi driver
+teacher
+technician
+therapist
+trader
+translator
+truck driver
+tutor
+vet
+veterinarian
+waiter
+waitress
+web developer
+welder
+writer

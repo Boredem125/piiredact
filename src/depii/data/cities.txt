@@ -1,0 +1,348 @@
+# Cities and large towns, one per line, in their usual English spelling.
+# A city alone is not personal data; it counts towards an identifying
+# combination (age + city + occupation, for example).
+# Asia
+mumbai
+delhi
+new delhi
+bengaluru
+bangalore
+hyderabad
+chennai
+kolkata
+pune
+ahmedabad
+jaipur
+lucknow
+kanpur
+nagpur
+indore
+bhopal
+patna
+surat
+vadodara
+coimbatore
+kochi
+thiruvananthapuram
+visakhapatnam
+chandigarh
+guwahati
+bhubaneswar
+noida
+gurugram
+gurgaon
+mysuru
+mysore
+madurai
+nashik
+ranchi
+dehradun
+amritsar
+ludhiana
+varanasi
+agra
+karachi
+lahore
+islamabad
+rawalpindi
+faisalabad
+dhaka
+chittagong
+kathmandu
+colombo
+beijing
+shanghai
+guangzhou
+shenzhen
+chengdu
+wuhan
+hangzhou
+nanjing
+xian
+tianjin
+chongqing
+hong kong
+macau
+taipei
+tokyo
+osaka
+kyoto
+yokohama
+nagoya
+sapporo
+fukuoka
+seoul
+busan
+incheon
+singapore
+kuala lumpur
+penang
+jakarta
+surabaya
+bandung
+bali
+manila
+quezon city
+cebu
+bangkok
+chiang mai
+hanoi
+ho chi minh city
+saigon
+yangon
+phnom penh
+dubai
+abu dhabi
+sharjah
+doha
+riyadh
+jeddah
+mecca
+medina
+kuwait city
+manama
+muscat
+tehran
+baghdad
+amman
+beirut
+damascus
+jerusalem
+tel aviv
+istanbul
+ankara
+izmir
+kabul
+tashkent
+almaty
+# Europe
+london
+manchester
+birmingham
+liverpool
+leeds
+glasgow
+edinburgh
+bristol
+sheffield
+newcastle
+nottingham
+leicester
+cardiff
+belfast
+dublin
+cork
+paris
+marseille
+lyon
+toulouse
+nice
+nantes
+strasbourg
+bordeaux
+lille
+berlin
+hamburg
+munich
+cologne
+frankfurt
+stuttgart
+dusseldorf
+leipzig
+dresden
+hanover
+nuremberg
+vienna
+zurich
+geneva
+basel
+bern
+amsterdam
+rotterdam
+the hague
+utrecht
+eindhoven
+brussels
+antwerp
+ghent
+luxembourg
+madrid
+barcelona
+valencia
+seville
+bilbao
+malaga
+lisbon
+porto
+rome
+milan
+naples
+turin
+florence
+venice
+bologna
+genoa
+palermo
+athens
+thessaloniki
+copenhagen
+aarhus
+stockholm
+gothenburg
+malmo
+oslo
+bergen
+helsinki
+tampere
+reykjavik
+warsaw
+krakow
+gdansk
+wroclaw
+poznan
+prague
+brno
+budapest
+bratislava
+bucharest
+cluj-napoca
+sofia
+belgrade
+zagreb
+ljubljana
+sarajevo
+kyiv
+kiev
+lviv
+kharkiv
+minsk
+vilnius
+riga
+tallinn
+moscow
+saint petersburg
+# Americas
+new york
+new york city
+los angeles
+chicago
+houston
+phoenix
+philadelphia
+san antonio
+san diego
+dallas
+san jose
+austin
+jacksonville
+san francisco
+seattle
+denver
+washington
+boston
+nashville
+detroit
+portland
+las vegas
+memphis
+louisville
+baltimore
+milwaukee
+albuquerque
+atlanta
+miami
+orlando
+tampa
+minneapolis
+cleveland
+pittsburgh
+new orleans
+salt lake city
+honolulu
+toronto
+montreal
+vancouver
+calgary
+ottawa
+edmonton
+winnipeg
+quebec city
+halifax
+mexico city
+guadalajara
+monterrey
+puebla
+tijuana
+cancun
+havana
+santo domingo
+san juan
+guatemala city
+panama city
+bogota
+medellin
+cali
+caracas
+quito
+guayaquil
+lima
+la paz
+santiago
+buenos aires
+cordoba
+rosario
+montevideo
+asuncion
+sao paulo
+rio de janeiro
+brasilia
+salvador
+fortaleza
+belo horizonte
+manaus
+curitiba
+recife
+porto alegre
+# Africa
+cairo
+alexandria
+lagos
+abuja
+ibadan
+kano
+accra
+kumasi
+nairobi
+mombasa
+addis ababa
+dar es salaam
+kampala
+kigali
+kinshasa
+luanda
+johannesburg
+cape town
+durban
+pretoria
+harare
+lusaka
+casablanca
+rabat
+marrakesh
+algiers
+tunis
+dakar
+abidjan
+# Oceania
+sydney
+melbourne
+brisbane
+perth
+adelaide
+canberra
+hobart
+darwin
+gold coast
+auckland
+wellington
+christchurch

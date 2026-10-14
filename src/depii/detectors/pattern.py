@@ -38,6 +38,7 @@ class PatternDetector:
                         shapes whose end a regex cannot decide.
     ``needs_digit``     every match contains a digit.
     ``needs``           substrings every match contains.
+    ``needs_any``       substrings of which every match contains at least one.
 
     The last two let the engine skip the detector for text that cannot
     match, which is most of the cost on short strings. They must be true of
@@ -51,6 +52,7 @@ class PatternDetector:
         "group",
         "name",
         "needs",
+        "needs_any",
         "needs_digit",
         "pattern",
         "require_context",
@@ -76,6 +78,7 @@ class PatternDetector:
         flags: int = 0,
         needs_digit: bool = False,
         needs: Sequence[str] = (),
+        needs_any: Sequence[str] = (),
     ) -> None:
         if require_context and not context:
             raise ValueError("require_context needs at least one context word")
@@ -90,6 +93,7 @@ class PatternDetector:
         self.trim = trim
         self.needs_digit = needs_digit
         self.needs = tuple(needs)
+        self.needs_any = tuple(needs_any)
         # Lowercased, for the engine's cheap "is any context word present" check.
         self.context_words = tuple(word.lower() for word in context)
         self._context = (

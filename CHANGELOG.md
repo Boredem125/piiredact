@@ -2,6 +2,21 @@
 
 This project follows [Semantic Versioning](https://semver.org/). Entity names and the fields of `Span` and `Result` are part of the public interface.
 
+## 0.3.0 (unreleased)
+
+Contextual detection, on by default and built in: no model and no download.
+
+- **Labels and tables.** A value is redacted because of its label, whatever it looks like: `Email: jane at example dot com`, `Name: ...`, `my name is ...`, `I live at ...`, JSON keys and `key=value` pairs (`"fullName": ...`, `user_email=...`), and columns of Markdown and tab-separated tables. Compound labels such as "file name" or "host name" are ignored.
+- **Person names** from titles (`Dr.`, `Mrs`, `Shri`, `श्री`), greetings and sign-offs, and built-in lists of common given and family names from many cultures. Names that are also everyday words (Will, May, Grace) need extra evidence.
+- **Street addresses** in English, South Asian, German, Nordic, Dutch, French, Spanish, Portuguese, Italian and Polish forms, and PO boxes.
+- **Propagation.** A value found once is redacted wherever else it appears.
+- **Person linking.** The parts of a detected name are redacted where they appear alone and linked to the full name, so `Tokenize` and `Hash` give "Jane Doe", "Ms Doe" and "Jane" the same output. `Span.link` holds the full name.
+- **Identifying combinations.** `AGE`, `GENDER`, `OCCUPATION`, `CITY` and `ORGANIZATION` are redacted when at least three kinds (counting postcodes, birth dates and addresses) occur within a few sentences. Set with `quasi_threshold`.
+- New `Redactor` options: `contextual` (turns all of the above off for speed), `propagate`, `quasi_threshold`.
+- New entity types: `USERNAME`, `AGE`, `GENDER`, `OCCUPATION`, `CITY`.
+- Detectors can declare `needs_any` substrings, and open-ended detectors can declare the `entities` they emit.
+- Fixed: a labelled value now outranks smaller matches inside it, so an address label covers the postcode within it.
+
 ## 0.2.0 (2026-10-14)
 
 - 24 new country packs, 32 new entity types, each with its check-digit or date validation and context words in the local language:

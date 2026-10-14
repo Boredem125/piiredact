@@ -21,7 +21,7 @@ from .registry import supported_entities
 from .structured import redact_obj as _redact_obj
 from .types import Result, Span
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "Detector",
