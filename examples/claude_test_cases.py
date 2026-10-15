@@ -1,6 +1,7 @@
 """Round-trip test cases against Claude: mask, send, unmask, check.
 
-    python examples/claude_test_cases.py            # needs ANTHROPIC_API_KEY
+    python examples/claude_test_cases.py            # API key, else the Claude CLI
+    python examples/claude_test_cases.py --cli      # Claude Code CLI login, no key
     python examples/claude_test_cases.py --offline  # show what would be sent
 
 Each case prints the original text, what Claude actually receives, Claude's
@@ -8,14 +9,18 @@ reply as it came back (labels only), and the reply with real values put back.
 Two checks run on every case: no real value may appear in what is sent, and
 any label Claude invented is listed.
 
-Needs `pip install anthropic`. Real calls use a few cents of API credit.
+The API backend needs `pip install anthropic` and uses a few cents of credit;
+the CLI backend uses your Claude Code login and plan.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 from collections.abc import Iterator
 
 import depii
@@ -78,32 +83,88 @@ CASES: list[dict[str, object]] = [
 ]
 
 
-def _client() -> object:
-    import anthropic
+class ApiBackend:
+    """Calls the Claude API through the anthropic SDK. Needs ANTHROPIC_API_KEY."""
 
-    return anthropic.Anthropic()
+    name = f"Claude API ({MODEL})"
+
+    def __init__(self) -> None:
+        import anthropic
+
+        self.client = anthropic.Anthropic()
+
+    def ask(self, system: str, messages: list[dict[str, object]]) -> str:
+        response = self.client.messages.create(
+            model=MODEL, max_tokens=4000, system=system, messages=messages
+        )
+        return "".join(block.text for block in response.content if block.type == "text")
+
+    def ask_stream(self, system: str, messages: list[dict[str, object]]) -> Iterator[str]:
+        with self.client.messages.stream(
+            model=MODEL, max_tokens=4000, system=system, messages=messages
+        ) as stream:
+            yield from stream.text_stream
 
 
-def _text(response: object) -> str:
-    return "".join(
-        block.text
-        for block in response.content  # type: ignore[attr-defined]
-        if block.type == "text"
-    )
+class CliBackend:
+    """Calls Claude through the Claude Code CLI (`claude -p`), using its login.
 
+    Every call runs with no tools, no hooks, no saved session and an empty
+    working folder, so nothing from the local setup reaches the model.
+    """
 
-def ask(client: object, system: str, messages: list[dict[str, object]]) -> str:
-    response = client.messages.create(  # type: ignore[attr-defined]
-        model=MODEL, max_tokens=4000, system=system, messages=messages
-    )
-    return _text(response)
+    name = "Claude Code CLI (claude -p)"
 
+    def __init__(self) -> None:
+        self.folder = tempfile.mkdtemp(prefix="depii-cli-")
 
-def ask_stream(client: object, system: str, messages: list[dict[str, object]]) -> Iterator[str]:
-    with client.messages.stream(  # type: ignore[attr-defined]
-        model=MODEL, max_tokens=4000, system=system, messages=messages
-    ) as stream:
-        yield from stream.text_stream
+    def _command(self, system: str, *extra: str) -> list[str]:
+        return [
+            shutil.which("claude") or "claude", "-p", "--system-prompt", system,
+            "--tools", "", "--settings", '{"disableAllHooks": true}',
+            "--no-session-persistence", *extra,
+        ]  # fmt: skip
+
+    @staticmethod
+    def _transcript(messages: list[dict[str, object]]) -> str:
+        """The CLI takes one prompt, so earlier turns are written out above the last."""
+        if len(messages) == 1:
+            return str(messages[0]["content"])
+        lines = ["Conversation so far:"]
+        for message in messages[:-1]:
+            lines.append(f"{message['role'].capitalize()}: {message['content']}")  # type: ignore[attr-defined]
+        lines.append("\nReply to this latest message:\n" + str(messages[-1]["content"]))
+        return "\n".join(lines)
+
+    def ask(self, system: str, messages: list[dict[str, object]]) -> str:
+        done = subprocess.run(  # noqa: S603
+            self._command(system, "--output-format", "text"),
+            input=self._transcript(messages),
+            capture_output=True, text=True, encoding="utf-8", cwd=self.folder,
+            timeout=300, check=True,
+        )  # fmt: skip
+        return done.stdout.strip()
+
+    def ask_stream(self, system: str, messages: list[dict[str, object]]) -> Iterator[str]:
+        command = self._command(
+            system, "--output-format", "stream-json", "--include-partial-messages", "--verbose"
+        )
+        with subprocess.Popen(  # noqa: S603
+            command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, encoding="utf-8", cwd=self.folder,
+        ) as process:  # fmt: skip
+            assert process.stdin is not None and process.stdout is not None
+            process.stdin.write(self._transcript(messages))
+            process.stdin.close()
+            for line in process.stdout:
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                inner = event.get("event", {}) if event.get("type") == "stream_event" else {}
+                delta = inner.get("delta", {})
+                if inner.get("type") == "content_block_delta" and delta.get("type") == "text_delta":
+                    yield delta["text"]
 
 
 def leaked(p: depii.Pseudonymizer, sent: str) -> list[str]:
@@ -111,8 +172,10 @@ def leaked(p: depii.Pseudonymizer, sent: str) -> list[str]:
     return [value for value in p.table.values() if value.lower() in sent.lower()]
 
 
-def run(offline: bool) -> None:
-    client = None if offline else _client()
+def run(backend: ApiBackend | CliBackend | None) -> None:
+    offline = backend is None
+    if backend is not None:
+        print("Backend:", backend.name)
     for case in CASES:
         print("=" * 78)
         print(case["title"])
@@ -139,12 +202,12 @@ def run(offline: bool) -> None:
                         yield chunk
 
                 print("\nFINAL, UNMASKED WHILE STREAMING:\n  ", end="")
-                for piece in p.unmask_stream(tee(ask_stream(client, p.instructions, masked))):
+                for piece in p.unmask_stream(tee(backend.ask_stream(p.instructions, masked))):
                     print(piece, end="", flush=True)
                 raw = "".join(raw_parts)
                 print("\n\nCLAUDE'S REPLY AS RECEIVED:\n  " + raw)
             else:
-                raw = ask(client, p.instructions, masked)
+                raw = backend.ask(p.instructions, masked)
                 print("\nCLAUDE'S REPLY AS RECEIVED:\n  " + raw.replace("\n", "\n  "))
                 if case.get("json"):
                     body = raw.strip().removeprefix("```json").removesuffix("```").strip()
@@ -178,9 +241,13 @@ def _key_from_user_environment() -> None:
 if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    offline = "--offline" in sys.argv
-    if not offline:
-        _key_from_user_environment()
-        if not os.environ.get("ANTHROPIC_API_KEY"):
-            sys.exit("Set ANTHROPIC_API_KEY first, or run with --offline.")
-    run(offline)
+    if "--offline" in sys.argv:
+        run(None)
+        sys.exit()
+    _key_from_user_environment()
+    if "--cli" not in sys.argv and os.environ.get("ANTHROPIC_API_KEY"):
+        run(ApiBackend())
+    elif shutil.which("claude"):
+        run(CliBackend())
+    else:
+        sys.exit("Set ANTHROPIC_API_KEY or install the Claude Code CLI, or use --offline.")

@@ -459,7 +459,7 @@ class Pseudonymizer:
 
 # ------------------------------------------------------------ label matching
 
-_PAIRS = {"[": "]", "**": "**", "{": "}"}
+_PAIRS = {"[": "]", "{": "}"}
 
 
 def _noun_pattern(noun: str) -> str:
@@ -469,10 +469,11 @@ def _noun_pattern(noun: str) -> str:
 
 def _compile(nouns: Iterable[str]) -> re.Pattern[str]:
     alternatives = "|".join(_noun_pattern(n) for n in sorted(nouns, key=len, reverse=True))
-    # "[Person A]" and "**Person A**" are decoration the AI added around a
-    # label; "(Person A)" is usually its own punctuation and is kept.
+    # "[Person A]" and "{Person A}" are decoration the AI added around a label
+    # and go. "**Person A**" (bold) and "(Person A)" are the AI's own
+    # formatting and punctuation, so they stay: "**Aryan**".
     return re.compile(
-        r"(?P<open>\*\*|[\[{])?"
+        r"(?P<open>[\[{])?"
         rf"(?<![A-Za-z0-9])(?P<noun>(?i:{alternatives}))[ _-](?P<suffix>[A-Z]{{1,3}})"
-        r"(?![A-Za-z0-9])(?P<close>\*\*|[\]}])?"
+        r"(?![A-Za-z0-9])(?P<close>[\]}])?"
     )

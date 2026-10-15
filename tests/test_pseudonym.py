@@ -44,7 +44,7 @@ def test_name_parts_share_the_full_names_label(p):
     [
         ("PERSON A agreed", "Aryan agreed"),
         ("person-A and Person_B", "Aryan and Ravan"),
-        ("[Person A] and **Person B**", "Aryan and Ravan"),
+        ("[Person A] and **Person B**", "Aryan and **Ravan**"),
         ("The lead (Person A) agreed.", "The lead (Aryan) agreed."),
         ("Person A's turn", "Aryan's turn"),
         ("a person a day", "a person a day"),

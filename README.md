@@ -139,7 +139,7 @@ More:
 - **Saving the table.** `p.save("table.json")` and `Pseudonymizer.load("table.json")` keep it across a restart. The file holds the real values: store it where the original data may live.
 - **A complete example.** `examples/ai_round_trip.py` runs offline, or against Claude with `--claude`.
 
-What the AI does to a label is handled: `PERSON A`, `Person-A`, `[Person A]`, `**Person A**` and `Person A's` all map back, while "a person a day" is left alone. A value already in the table is masked wherever it appears later, in any case, and a lone "Doe" after "Jane Doe" gets Jane Doe's label. Labels that already occur in your text are never reused, and masking text twice changes nothing, so earlier replies can go back into the history as they are.
+What the AI does to a label is handled: `PERSON A`, `Person-A`, `[Person A]`, `**Person A**` (the bold stays) and `Person A's` all map back, while "a person a day" is left alone. A value already in the table is masked wherever it appears later, in any case, and a lone "Doe" after "Jane Doe" gets Jane Doe's label. Labels that already occur in your text are never reused, and masking text twice changes nothing, so earlier replies can go back into the history as they are.
 
 From the shell, with one table file per conversation:
 
