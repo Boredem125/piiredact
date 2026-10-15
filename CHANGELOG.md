@@ -2,7 +2,7 @@
 
 This project follows [Semantic Versioning](https://semver.org/). Entity names and the fields of `Span` and `Result` are part of the public interface.
 
-## 0.3.0 (unreleased)
+## 0.3.0 (2026-10-15)
 
 Contextual detection, on by default and built in: no model and no download. Reversible pseudonyms for sending text to an AI.
 
