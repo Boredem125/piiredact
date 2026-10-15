@@ -234,6 +234,9 @@ def _name_run(value: str, *, require_capital: bool) -> int:
     end = 0
     for count, match in enumerate(re.finditer(r"\S+", value)):
         word = match.group().rstrip(',;"`)]}')
+        possessive = word[-2:] in ("'s", "’s")
+        if possessive:
+            word = word[:-2]  # "Iyer's team": the name is "Iyer"
         core = word.strip(".'’-")
         if not core or not all(ch.isalpha() or ch in ".'’-" for ch in word):
             break
@@ -245,7 +248,7 @@ def _name_run(value: str, *, require_capital: bool) -> int:
             break
         if not particle:
             end = match.start() + len(word)
-        if count == 4:
+        if count == 4 or possessive:
             break
     return end
 

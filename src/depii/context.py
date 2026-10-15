@@ -29,7 +29,7 @@ _NO_PROPAGATION = frozenset({URL})
 # More distinct values than this would make the search pattern too large to
 # be worth it; the first ones found are propagated, the rest are not.
 _MAX_VALUES = 2000
-_NAME_PART = re.compile(r"[^\W\d_]+(?:['’-][^\W\d_]+)*")
+_NAME_PART = re.compile(r"[^\W\d_]+(?:['’-](?![sS](?![^\W\d_]))[^\W\d_]+)*")
 
 
 def _name_parts(name: str) -> list[str]:

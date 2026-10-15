@@ -212,3 +212,10 @@ def test_unmask_restores_the_original(data):
     p = Pseudonymizer()
     masked = p.mask(text)
     assert p.unmask(masked) == text
+
+
+def test_possessive_stays_outside_the_label(p):
+    masked = p.mask("Oluwaseun joins Dr. Kavya Iyer's team. Kwame's laptop; Kwame Mensah said hi.")
+    assert masked == "Person A joins Dr. Person B's team. Person C's laptop; Person C said hi."
+    assert p.table["Person B"] == "Kavya Iyer"
+    assert p.mask("O'Brien said hi.") == "Person D said hi."

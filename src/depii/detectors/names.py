@@ -114,15 +114,15 @@ def _starts_word(text: str, index: int) -> bool:
 _DEVANAGARI_TITLE = re.compile(r"(?:श्री|श्रीमती|कुमारी|डॉ\.?)\s+")
 _DEVANAGARI_WORD = re.compile(r"[ऀ-ॿ]+")
 # A capitalised word (any script with case), or an initial such as "R.".
-_TOKEN = re.compile(r"[A-Z]\.(?=\s)|[^\W\d_]+(?:['’-][^\W\d_]+)*", re.UNICODE)
+_TOKEN = re.compile(r"[A-Z]\.(?=\s)|[^\W\d_]+(?:['’-](?![sS](?![^\W\d_]))[^\W\d_]+)*", re.UNICODE)
 
 # Uppercase letters of the Latin scripts that the name lists are written in.
 _UPPER = "A-ZÀ-ÖØ-ÞĀĂĄĆČĎĐĒĘĚĞĪİŁŃŇŌŐŒŘŚŞŠŢŤŪŮŰŹŻŽ"
 # A run of capitalised words (or initials) separated by single spaces.
 _CAPITALISED_RUN = re.compile(
-    rf"[{_UPPER}][^\W\d_]*(?:['’-][^\W\d_]+)*"
+    rf"[{_UPPER}][^\W\d_]*(?:['’-](?![sS](?![^\W\d_]))[^\W\d_]+)*"
     # The initial comes first, so "J." is not read as the word "J".
-    rf"(?: (?:[A-Z]\.(?= )|[{_UPPER}][^\W\d_]*(?:['’-][^\W\d_]+)*))*"
+    rf"(?: (?:[A-Z]\.(?= )|[{_UPPER}][^\W\d_]*(?:['’-](?![sS](?![^\W\d_]))[^\W\d_]+)*))*"
 )
 
 SCORE_TITLE = 0.9
@@ -154,8 +154,8 @@ _NOT_SUBJECTS = frozenset(
 )
 # The capitalised words right before a verb: "Ravan", "Meera Iyer".
 _TRAILING_NAME = re.compile(
-    r"(?:[A-ZÀ-ÖØ-Þ][^\W\d_]*(?:['’-][^\W\d_]+)*|[A-Z]\.)"
-    r"(?: (?:[A-ZÀ-ÖØ-Þ][^\W\d_]*(?:['’-][^\W\d_]+)*|[A-Z]\.)){0,2}$"
+    r"(?:[A-ZÀ-ÖØ-Þ][^\W\d_]*(?:['’-](?![sS](?![^\W\d_]))[^\W\d_]+)*|[A-Z]\.)"
+    r"(?: (?:[A-ZÀ-ÖØ-Þ][^\W\d_]*(?:['’-](?![sS](?![^\W\d_]))[^\W\d_]+)*|[A-Z]\.)){0,2}$"
 )
 
 
